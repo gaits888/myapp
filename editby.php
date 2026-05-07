@@ -315,12 +315,12 @@ $cityid = db('areab')->where('fullname', $info['city'])->value('id');
             </div>
 
             <!-- 提交按钮 -->
-            <div type="submit" class="submit-button">
+            <button type="submit" class="submit-button">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
                 立即修改
-            </div>
+            </button>
         </form>
 
     </div>
@@ -536,65 +536,63 @@ function fillFormData() {
   }
 }
 
-// 表单验证
+// 表单验证（依次判断，遇到第一个未填/未选则 alert 提示并聚焦，立即返回）
 function validateForm() {
-  let isValid = true
+  // 必填字段：按顺序排列，select 类型用 value=="0" 或 value=="" 判断未选
+  const requiredFields = [
+    { name: "province", msg: "请选择省份",   type: "select" },
+    { name: "city",     msg: "请选择城市",   type: "select" },
+    { name: "age",      msg: "请选择年龄大小", type: "select0" },
+    { name: "sg",       msg: "请选择身高",   type: "select0" },
+    { name: "tz",       msg: "请选择体重",   type: "select0" },
+    { name: "xl",       msg: "请选择学历",   type: "select0" },
+    { name: "zy",       msg: "请选择职业",   type: "select0" },
+    { name: "aihao",    msg: "请输入兴趣爱好", type: "text" },
+    { name: "price",    msg: "请输入约会价格", type: "text" },
+    { name: "content",  msg: "请填写详细内容", type: "text" },
+    { name: "uname",    msg: "请输入昵称",   type: "text" },
+  ]
 
-  document.querySelectorAll(".form-error").forEach((el) => {
-    el.classList.remove("show")
-  })
+  for (const field of requiredFields) {
+    const el = document.querySelector(`[name="${field.name}"]`)
+    if (!el) continue
 
-  const requiredFields = {
-    province: "请选择省份",
-    city: "请选择城市",
-    age: "请选择年龄",
-    sg: "请选择身高",
-    tz: "请选择体重",
-    xl: "请选择学历",
-    zy: "请选择职业",
-    aihao: "请输入兴趣爱好",
-    price: "请输入约会价格",
-    content: "请填写详细内容",
-    uname: "请输入昵称",
-    mobile: "请输入手机号码",
-    weixin: "请输入微信号",
-    qq: "请输入QQ号码",
-    yzm: "请输入验证码",
-  }
+    let empty = false
+    if (field.type === "select") {
+      empty = !el.value || el.value === ""
+    } else if (field.type === "select0") {
+      empty = !el.value || el.value === "0" || el.value === ""
+    } else {
+      empty = !el.value.trim()
+    }
 
-  for (const [field, message] of Object.entries(requiredFields)) {
-    const input = document.querySelector(`[name="${field}"]`)
-    const errorEl = document.querySelector(`.form-error[data-field="${field}"]`)
-
-    if (input && !input.value.trim()) {
-      if (errorEl) {
-        errorEl.textContent = message
-        errorEl.classList.add("show")
-      }
-      isValid = false
+    if (empty) {
+      alert(field.msg)
+      el.focus()
+      return false
     }
   }
 
+  // 联系方式：手机、微信、QQ 至少填写一项
   const mobile = document.querySelector('[name="mobile"]').value.trim()
   const weixin = document.querySelector('[name="weixin"]').value.trim()
-  const qq = document.querySelector('[name="qq"]').value.trim()
+  const qq     = document.querySelector('[name="qq"]').value.trim()
 
-  if (!mobile && !weixin && !qq ) {
-    const contactError = document.querySelector('.form-error[data-field="contact"]')
-    if (contactError) {
-      contactError.classList.add("show")
-    }
-    isValid = false
+  if (!mobile && !weixin && !qq) {
+    alert("手机号、微信、QQ 至少填写一项")
+    document.querySelector('[name="mobile"]').focus()
+    return false
   }
 
-  if (!isValid) {
-    const firstError = document.querySelector(".form-error.show")
-    if (firstError) {
-      firstError.scrollIntoView({ behavior: "smooth", block: "center" })
-    }
+  // 验证码
+  const yzmEl = document.getElementById("yzm")
+  if (!yzmEl || !yzmEl.value.trim()) {
+    alert("请输入验证码")
+    yzmEl && yzmEl.focus()
+    return false
   }
 
-  return isValid
+  return true
 }
 
 // 表单提交处理
