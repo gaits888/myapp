@@ -333,7 +333,8 @@ $provinceArr = db('areab')->where(['pid' => 0])->field('id, name')->select();
         window.infoData = <?php echo json_encode($info); ?>;
         window.existingImages = <?php echo json_encode($images); ?>;
         window.existingVideos = <?php echo json_encode($videos); ?>;
-        window.provinceSelect = <?php echo $citypid;?>;
+        window.provinceSelect = <?php echo json_encode($citypid); ?>;
+        window.selectedCity    = <?php echo json_encode(isset($info['cityid']) ? $info['cityid'] : ''); ?>;
         window.selectedDistrict = 0;
         
 
