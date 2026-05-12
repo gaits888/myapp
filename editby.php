@@ -377,73 +377,9 @@ async function getRegionList(pid, type) {
   }
 }
 
-/**
- * 更新城市下拉框
- * @param {number} provinceId 省份id
- */
-async function updateCityOptions(provinceId) {
-  const citySelect = document.getElementById("city")
-  const districtSelect = document.getElementById("district")
-
-  if (!provinceId) {
-    citySelect.innerHTML = '<option value="">请先选择省份</option>'
-    districtSelect.innerHTML = '<option value="">请先选择城市</option>'
-    return
-  }
-
-  citySelect.innerHTML = '<option value="">加载中...</option>'
-  districtSelect.innerHTML = '<option value="">请先选择城市</option>'
-
-  const cities = await getRegionList(provinceId, 2)
-
-  citySelect.innerHTML = '<option value="">请选择城市</option>'
-  cities.forEach((city) => {
-    const option = document.createElement("option")
-    option.value = city.id
-    option.textContent = city.fullname || city.name
-    citySelect.appendChild(option)
-  })
-
-  if (window.selectedCity) {
-    citySelect.value = window.selectedCity
-    await updateDistrictOptions(window.selectedCity)
-  }
-}
-
-/**
- * 更新区县下拉框
- * @param {number} cityId 城市id
- */
-async function updateDistrictOptions(cityId) {
-  const districtSelect = document.getElementById("district")
-
-  if (!cityId) {
-    districtSelect.innerHTML = '<option value="">请先选择城市</option>'
-    return
-  }
-
-  districtSelect.innerHTML = '<option value="">加载中...</option>'
-
-  const districts = await getRegionList(cityId, 3)
-
-  districtSelect.innerHTML = '<option value="">请选择区县</option>'
-  districts.forEach((district) => {
-    const option = document.createElement("option")
-    option.value = district.id
-    option.textContent = district.fullname || district.name
-    districtSelect.appendChild(option)
-  })
-
-  if (window.selectedDistrict) {
-    districtSelect.value = window.selectedDistrict
-  }
-}
-
-// 初始化地区选择器
+// 初始化省份选择器（city 为文本框，无需动态加载城市列表）
 async function initCitySelector() {
   const provinceSelect = document.getElementById("province")
-  const citySelect = document.getElementById("city")
-  const districtSelect = document.getElementById("district")
 
   const provinces = await getRegionList(0, 1)
 
@@ -456,25 +392,14 @@ async function initCitySelector() {
       provinceSelect.appendChild(option)
     })
 
+    // 回显已保存的省份
     if (window.provinceSelect) {
       provinceSelect.value = window.provinceSelect
-      await updateCityOptions(window.provinceSelect)
     }
   }
 
-  provinceSelect.addEventListener("change", async function () {
-    const provinceId = this.value
-    window.provinceSelect = provinceId
-    window.selectedCity = ""
-    window.selectedDistrict = ""
-    await updateCityOptions(provinceId)
-  })
-
-  citySelect.addEventListener("change", async function () {
-    const cityId = this.value
-    window.selectedCity = cityId
-    window.selectedDistrict = ""
-    await updateDistrictOptions(cityId)
+  provinceSelect.addEventListener("change", function () {
+    window.provinceSelect = this.value
   })
 
   districtSelect.addEventListener("change", function () {
