@@ -1,7 +1,7 @@
 <?php 
 include_once 'loaduser.php';
 include_once 'comm/alert_modal.php';
-$page_title = "高端修改";
+$pageTitle = "修改资料";
 
 $info_id = intval($_GET['id'] ?? 0);
 if ($info_id <= 0) {
@@ -19,8 +19,9 @@ $images = !empty($info['pics']) ? explode('|', $info['pics']) : [];
 $videos = !empty($info['videos']) ? explode('|', $info['videos']) : [];
 
 
-$citypid = db('areab')->where('name', $info['jg'])->value('id');
-$cityid = db('areab')->where('fullname', $info['city'])->value('id');
+
+$citypid=$info['jg']; 
+$provinceArr = db('areab')->where(['pid' => 0])->field('id, name')->select();
 
 ?>
 <!DOCTYPE html>
@@ -48,52 +49,16 @@ $cityid = db('areab')->where('fullname', $info['city'])->value('id');
                 </h3>
                 <input type="hidden" name="typeid" value="<?php echo $typeid;?>">
                 
-                <div class="form-item">
-                    <label class="form-label required">
-                        <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                        </svg>
-                        所属地区
-                    </label>
-                    <select name="province" id="province" class="form-select">
-                        <option value="">请选择省份</option>
-                        <?php foreach ($provinceArr as $k => $v) { ?>
-                           <option value="<?php echo $v['id']; ?>"><?php echo $v['fullname']; ?></option>
-                        <?php } ?>
-                    </select>
-                    <div class="form-error" data-field="province">请选择省份</div>
-                </div>
-                
-                <div class="form-item">
-                    <label class="form-label required"> <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                        </svg>所在城市</label>
-                    <select name="city" id="city" class="form-select">
-                        <option value="">请先选择省份</option>
-                    </select>
-                    <div class="form-error" data-field="city">请选择城市</div>
-                </div>
-                
-                <div class="form-item" style="display:none;">
-                    <label class="form-label required">所在区县</label>
-                    <select name="district" id="district" class="form-select">
-                        <option value="">请先选择城市</option>
-                    </select>
-                    <div class="form-error" data-field="district">请选择区县</div>
-                </div>
-                
 
                 <div class="form-item">
                     <label class="form-label">
                         <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                         </svg>
-                        年龄大小
+                        年龄
                     </label>
                     <select name="age" class="form-select">
-                        <option value="0">请选择年龄大小</option>
+                        <option value="0">请选择年龄</option>
                         <?php for($i = 18; $i <= 35; $i++): ?>
                         <option value="<?php echo $i; ?>"><?php echo $i; ?>岁</option>
                         <?php endfor; ?>
@@ -166,6 +131,40 @@ $cityid = db('areab')->where('fullname', $info['city'])->value('id');
                 </div>
 
 
+                <div class="form-item">
+                    <label class="form-label required">
+                        <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                        籍贯
+                    </label>
+                    <select name="province" id="province" class="form-select">
+                        <option value="">请选择籍贯</option>
+                        
+                    
+                      <?php foreach ($provinceArr as $k => $v) { ?>
+                           <option value="<?php echo $v['name']; ?>" <?php echo $citypid == $v['name'] ? 'selected' : ''; ?>><?php echo $v['name']; ?></option>
+                        <?php } ?>
+                        
+                    </select>
+                    
+                    
+                    <div class="form-error" data-field="province">请选择籍贯</div>
+                </div>
+                
+                
+                 <div class="form-item">
+                    <label class="form-label required">
+                        <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                        </svg>
+                        所在城市
+                    </label>
+                    <input type="text" name="city" class="form-input" placeholder="填写如：北京，上海，深圳，广州，杭州 等">
+                    <div class="form-error" data-field="aihao">请输入所在城市</div>
+                </div>
+                
 
                 <div class="form-item">
                     <label class="form-label required">
@@ -325,13 +324,16 @@ $cityid = db('areab')->where('fullname', $info['city'])->value('id');
 
     </div>
 
-    <?php include 'comm/footer.php'; ?>
+
+
+
+    <script src="/js/imgvideo.js?t=<?php time();?>"></script>
+    
 <script>
         window.infoData = <?php echo json_encode($info); ?>;
         window.existingImages = <?php echo json_encode($images); ?>;
         window.existingVideos = <?php echo json_encode($videos); ?>;
         window.provinceSelect = <?php echo $citypid;?>;
-        window.selectedCity = <?php echo $cityid; ?>;
         window.selectedDistrict = 0;
         
 
@@ -485,25 +487,21 @@ function fillFormData() {
 
   const data = window.infoData
 
-  const fields = [
-    "age",
-    "sg",
-    "tz",
-    "xl",
-    "zy",
-    "aihao",
-    "price",
-    "content",
-    "uname",
-    "mobile",
-    "weixin",
-    "qq",
-  ]
+  // 文本类字段（input / textarea）
+  const textFields = ["aihao", "price", "content", "uname", "mobile", "weixin", "qq", "city"]
+  textFields.forEach((field) => {
+    const el = document.querySelector(`[name="${field}"]`)
+    if (el && data[field] !== undefined && data[field] !== null) {
+      el.value = data[field]
+    }
+  })
 
-  fields.forEach((field) => {
-    const input = document.querySelector(`[name="${field}"]`)
-    if (input && data[field]) {
-      input.value = data[field]
+  // select 类字段：强制转为字符串再赋值，确保与 option value 类型一致
+  const selectFields = ["age", "sg", "tz", "xl", "zy"]
+  selectFields.forEach((field) => {
+    const el = document.querySelector(`[name="${field}"]`)
+    if (el && data[field] !== undefined && data[field] !== null) {
+      el.value = String(data[field])
     }
   })
 
@@ -536,35 +534,29 @@ function fillFormData() {
   }
 }
 
-// 表单验证（依次判断，遇到第一个未填/未选则 alert 提示并聚焦，立即返回）
+// 表单验证（按页面顺序依次判断，遇到第一个未填/未选立即 alert 并聚焦）
 function validateForm() {
-  // 必填字段：按顺序排列，select 类型用 value=="0" 或 value=="" 判断未选
+  // 按 HTML 页面顺序排列：select0 = value 为 "0" 或空则未选
   const requiredFields = [
-    { name: "province", msg: "请选择省份",   type: "select" },
-    { name: "city",     msg: "请选择城市",   type: "select" },
-    { name: "age",      msg: "请选择年龄大小", type: "select0" },
-    { name: "sg",       msg: "请选择身高",   type: "select0" },
-    { name: "tz",       msg: "请选择体重",   type: "select0" },
-    { name: "xl",       msg: "请选择学历",   type: "select0" },
-    { name: "zy",       msg: "请选择职业",   type: "select0" },
-    { name: "aihao",    msg: "请输入兴趣爱好", type: "text" },
-    { name: "price",    msg: "请输入约会价格", type: "text" },
-    { name: "content",  msg: "请填写详细内容", type: "text" },
-    { name: "uname",    msg: "请输入昵称",   type: "text" },
+    { name: "age",      msg: "请选择年龄",    isSelect: true  },
+    { name: "sg",       msg: "请选择身高",    isSelect: true  },
+    { name: "tz",       msg: "请选择体重",    isSelect: true  },
+    { name: "xl",       msg: "请选择学历",    isSelect: true  },
+    { name: "zy",       msg: "请选择职业",    isSelect: true  },
+    { name: "province", msg: "请选择籍贯",    isSelect: false }, // value 为 name 字符串，非数字
+    { name: "city",     msg: "请输入所在城市", isSelect: false },
+    { name: "aihao",    msg: "请输入兴趣爱好", isSelect: false },
+    { name: "price",    msg: "请输入约会价格", isSelect: false },
+    { name: "content",  msg: "请填写详细内容", isSelect: false },
+    { name: "uname",    msg: "请输入昵称",    isSelect: false },
   ]
 
   for (const field of requiredFields) {
     const el = document.querySelector(`[name="${field.name}"]`)
     if (!el) continue
 
-    let empty = false
-    if (field.type === "select") {
-      empty = !el.value || el.value === ""
-    } else if (field.type === "select0") {
-      empty = !el.value || el.value === "0" || el.value === ""
-    } else {
-      empty = !el.value.trim()
-    }
+    const val = el.value ? el.value.trim() : ""
+    const empty = field.isSelect ? (!val || val === "0") : !val
 
     if (empty) {
       alert(field.msg)
@@ -574,13 +566,16 @@ function validateForm() {
   }
 
   // 联系方式：手机、微信、QQ 至少填写一项
-  const mobile = document.querySelector('[name="mobile"]').value.trim()
-  const weixin = document.querySelector('[name="weixin"]').value.trim()
-  const qq     = document.querySelector('[name="qq"]').value.trim()
+  const mobileEl = document.querySelector('[name="mobile"]')
+  const weixinEl = document.querySelector('[name="weixin"]')
+  const qqEl     = document.querySelector('[name="qq"]')
+  const hasContact = (mobileEl && mobileEl.value.trim()) ||
+                     (weixinEl && weixinEl.value.trim()) ||
+                     (qqEl     && qqEl.value.trim())
 
-  if (!mobile && !weixin && !qq) {
+  if (!hasContact) {
     alert("手机号、微信、QQ 至少填写一项")
-    document.querySelector('[name="mobile"]').focus()
+    mobileEl && mobileEl.focus()
     return false
   }
 
@@ -671,6 +666,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         
     </script>
-    <script src="/js/imgvideo.js?t=<?php time();?>"></script>
+
 </body>
 </html>
