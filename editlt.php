@@ -329,15 +329,299 @@ $provinceArr = db('areab')->where(['pid' => 0])->field('id, fullname')->select()
 
 
     <script>
-        window.infoData = <?php echo json_encode($info); ?>;
-        window.existingImages = <?php echo json_encode($images); ?>;
-        window.existingVideos = <?php echo json_encode($videos); ?>;
-        window.provinceSelect = <?php echo $citypid;?>;
-        window.selectedCity = <?php echo $info['city']; ?>;
-        window.selectedDistrict = <?php echo $info['cityid']; ?>;
-        
+        window.infoData        = <?php echo json_encode($info); ?>;
+        window.existingImages  = <?php echo json_encode($images); ?>;
+        window.existingVideos  = <?php echo json_encode($videos); ?>;
+        window.provinceSelect  = <?php echo json_encode($citypid); ?>;
+        window.selectedCity    = <?php echo json_encode($info['city']); ?>;
+        window.selectedDistrict = <?php echo json_encode($info['cityid'] ?? 0); ?>;
     </script>
     <script src="/js/imgvideo.js?t=<?php echo time();?>"></script>
-    <script src="/js/publish_edit.js?t=<?php echo time();?>"></script>
+    <script>
+    // ----------------------------------------------------------------
+    // 刷新验证码
+    // ----------------------------------------------------------------
+    function refreshCaptcha() {
+        var img = document.getElementById('captchaImg');
+        if (img) img.src = '/lib/yzmcode.html?t=' + Date.now();
+    }
+
+    // ----------------------------------------------------------------
+    // 加载层：显示 / 隐藏
+    // ----------------------------------------------------------------
+    function showLoadingLayer() {
+        var layer = document.getElementById('submitLoadingLayer');
+        if (layer) layer.style.display = 'flex';
+    }
+    function hideLoadingLayer() {
+        var layer = document.getElementById('submitLoadingLayer');
+        if (layer) layer.style.display = 'none';
+    }
+
+    // ----------------------------------------------------------------
+    // 获取城市 / 区县列表
+    // ----------------------------------------------------------------
+    async function getRegionList(pid, level) {
+        try {
+            var res = await fetch('/lib/getarea.html?pid=' + pid + '&level=' + level);
+            var data = await res.json();
+            return Array.isArray(data) ? data : (data.data || []);
+        } catch (e) {
+            return [];
+        }
+    }
+
+    // ----------------------------------------------------------------
+    // 更新城市下拉
+    // ----------------------------------------------------------------
+    async function updateCityOptions(provinceId) {
+        var citySelect     = document.getElementById('city');
+        var districtSelect = document.getElementById('district');
+        if (!citySelect) return;
+
+        citySelect.innerHTML     = '<option value="">加载中...</option>';
+        districtSelect.innerHTML = '<option value="">请先选择城市</option>';
+
+        if (!provinceId) {
+            citySelect.innerHTML = '<option value="">请先选择省份</option>';
+            return;
+        }
+
+        var cities = await getRegionList(provinceId, 2);
+        citySelect.innerHTML = '<option value="">请选择城市</option>';
+        cities.forEach(function(c) {
+            var opt = document.createElement('option');
+            opt.value = c.id;
+            opt.textContent = c.fullname || c.name;
+            citySelect.appendChild(opt);
+        });
+
+        if (window.selectedCity) {
+            citySelect.value = String(window.selectedCity);
+            await updateDistrictOptions(window.selectedCity);
+        }
+    }
+
+    // ----------------------------------------------------------------
+    // 更新区县下拉
+    // ----------------------------------------------------------------
+    async function updateDistrictOptions(cityId) {
+        var districtSelect = document.getElementById('district');
+        if (!districtSelect) return;
+
+        districtSelect.innerHTML = '<option value="">加载中...</option>';
+
+        if (!cityId) {
+            districtSelect.innerHTML = '<option value="">请先选择城市</option>';
+            return;
+        }
+
+        var districts = await getRegionList(cityId, 3);
+        districtSelect.innerHTML = '<option value="">请选择区县</option>';
+        districts.forEach(function(d) {
+            var opt = document.createElement('option');
+            opt.value = d.id;
+            opt.textContent = d.fullname || d.name;
+            districtSelect.appendChild(opt);
+        });
+
+        if (window.selectedDistrict) {
+            districtSelect.value = String(window.selectedDistrict);
+        }
+    }
+
+    // ----------------------------------------------------------------
+    // 初始化省份 / 城市联动
+    // ----------------------------------------------------------------
+    async function initCitySelector() {
+        var provinceSelect = document.getElementById('province');
+        if (!provinceSelect) return;
+
+        // 省份已由 PHP 服务端渲染，直接回显
+        if (window.provinceSelect) {
+            provinceSelect.value = String(window.provinceSelect);
+            await updateCityOptions(window.provinceSelect);
+        }
+
+        provinceSelect.addEventListener('change', async function() {
+            window.provinceSelect   = this.value;
+            window.selectedCity     = '';
+            window.selectedDistrict = '';
+            await updateCityOptions(this.value);
+        });
+
+        document.getElementById('city') && document.getElementById('city').addEventListener('change', async function() {
+            window.selectedCity     = this.value;
+            window.selectedDistrict = '';
+            await updateDistrictOptions(this.value);
+        });
+    }
+
+    // ----------------------------------------------------------------
+    // 表单验证（按页面顺序逐一校验，遇到未填立即 alert + focus）
+    // ----------------------------------------------------------------
+    function validateForm() {
+        var fields = [
+            { name: 'title',    isSelect: false, msg: '请输入信息标题' },
+            { name: 'province', isSelect: true,  msg: '请选择省份' },
+            { name: 'city',     isSelect: true,  msg: '请选择城市' },
+            { name: 'district', isSelect: true,  msg: '请选择区县' },
+            { name: 'typeid',   isSelect: true,  msg: '请选择发布类别' },
+            { name: 'laiyuan',  isSelect: true,  msg: '请选择信息来源' },
+            { name: 'pj',       isSelect: true,  msg: '请选择综合评价' },
+            { name: 'content',  isSelect: false, msg: '请填写详细内容' },
+            { name: 'uname',    isSelect: false, msg: '请输入联系人姓名' },
+            { name: 'address',  isSelect: false, msg: '请输入详细地址' },
+        ];
+
+        for (var i = 0; i < fields.length; i++) {
+            var f  = fields[i];
+            var el = document.querySelector('[name="' + f.name + '"]');
+            if (!el) continue;
+            var val   = el.value ? el.value.trim() : '';
+            var empty = f.isSelect ? (!val || val === '0') : !val;
+            if (empty) {
+                alert(f.msg);
+                el.focus();
+                return false;
+            }
+        }
+
+        // 联系方式：手机、微信、QQ、与你号 至少填写一项
+        var mobileEl = document.querySelector('[name="mobile"]');
+        var weixinEl = document.querySelector('[name="weixin"]');
+        var qqEl     = document.querySelector('[name="qq"]');
+        var yuniEl   = document.querySelector('[name="yuni"]');
+        var hasContact = (mobileEl && mobileEl.value.trim()) ||
+                         (weixinEl && weixinEl.value.trim()) ||
+                         (qqEl     && qqEl.value.trim())     ||
+                         (yuniEl   && yuniEl.value.trim());
+        if (!hasContact) {
+            alert('手机号、微信、QQ、与你号 至少填写一项');
+            mobileEl && mobileEl.focus();
+            return false;
+        }
+
+        // 验证码
+        var yzmEl = document.getElementById('yzm');
+        if (!yzmEl || !yzmEl.value.trim()) {
+            alert('请输入验证码');
+            yzmEl && yzmEl.focus();
+            return false;
+        }
+
+        return true;
+    }
+
+    // ----------------------------------------------------------------
+    // 表单提交
+    // ----------------------------------------------------------------
+    async function handleFormSubmit(e) {
+        e.preventDefault();
+
+        if (!validateForm()) return;
+
+        // 验证通过：显示加载层（不在此刷新验证码，否则 Session 值更新导致校验失败）
+        showLoadingLayer();
+
+        try {
+            // 上传图片
+            if (window.imageUploader) {
+                var imgOk = await window.imageUploader.uploadAllFiles();
+                if (!imgOk) { hideLoadingLayer(); showInfo('图片上传失败，请重试'); return; }
+            }
+
+            // 上传视频
+            if (window.videoUploader) {
+                var vidOk = await window.videoUploader.uploadAllFiles();
+                if (!vidOk) { hideLoadingLayer(); showInfo('视频上传失败，请重试'); return; }
+            }
+
+            var images   = window.imageUploader ? window.imageUploader.getFiles() : [];
+            var videos   = window.videoUploader ? window.videoUploader.getFiles() : [];
+            var formData = new FormData(document.getElementById('publishForm'));
+            formData.append('id',     window.infoData.id);
+            formData.append('pics',   images.join('|'));
+            formData.append('videos', videos.join('|'));
+
+            var response = await fetch('/opers/forum/lt_edit.html', {
+                method: 'POST',
+                body: formData,
+                credentials: 'include'
+            });
+
+            var result = await response.json();
+
+            // 后端返回后关闭加载层
+            hideLoadingLayer();
+
+            if (result.code === 200) {
+                showSuccess('修改成功，请等待审核！', '修改成功', 100000, 'member_publish.html');
+            } else {
+                showInfo(result.msg || '修改失败');
+                if (result.msg && result.msg.includes('验证码')) {
+                    refreshCaptcha();
+                }
+            }
+        } catch (err) {
+            hideLoadingLayer();
+            showInfo('网络错误，请重试');
+        }
+    }
+
+    // ----------------------------------------------------------------
+    // 填充表单数据（图片/视频由 imgvideo.js 初始化后处理）
+    // ----------------------------------------------------------------
+    function fillFormData() {
+        if (!window.infoData) return;
+        var data = window.infoData;
+
+        // 文本类
+        ['title','wmtj','price','content','uname','mobile','weixin','qq','yuni','address'].forEach(function(f) {
+            var el = document.querySelector('[name="' + f + '"]');
+            if (el && data[f] !== undefined && data[f] !== null) el.value = data[f];
+        });
+
+        // select 类（PHP 已用 selected 回显，JS 兜底）
+        ['typeid','laiyuan','pj','nums','age'].forEach(function(f) {
+            var el = document.querySelector('[name="' + f + '"]');
+            if (el && data[f] !== undefined && data[f] !== null) el.value = String(data[f]);
+        });
+
+        // 已上传图片
+        if (window.existingImages && window.existingImages.length > 0 && window.imageUploader) {
+            window.existingImages.forEach(function(p) {
+                window.imageUploader.files.push({ file: null, preview: p, type: 'image', uploaded: true, path: p });
+            });
+            window.imageUploader.render();
+        }
+
+        // 已上传视频
+        if (window.existingVideos && window.existingVideos.length > 0 && window.videoUploader) {
+            window.existingVideos.forEach(function(p) {
+                window.videoUploader.files.push({ file: null, preview: p, type: 'video', uploaded: true, path: p });
+            });
+            window.videoUploader.render();
+        }
+    }
+
+    // ----------------------------------------------------------------
+    // 初始化
+    // ----------------------------------------------------------------
+    document.addEventListener('DOMContentLoaded', async function() {
+        await initCitySelector();
+        fillFormData();
+        document.getElementById('publishForm').addEventListener('submit', handleFormSubmit);
+    });
+    </script>
+
+<!-- 提交加载层：半透明遮罩，不可手动关闭，后端返回后由 JS 移除 -->
+<div id="submitLoadingLayer" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.45);align-items:center;justify-content:center;flex-direction:column;gap:16px;">
+    <div style="width:48px;height:48px;border:5px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spinLoader 0.8s linear infinite;"></div>
+    <p style="color:#fff;font-size:15px;font-weight:500;letter-spacing:1px;margin:0;">数据正在飞速上传中，请稍等...</p>
+</div>
+<style>
+@keyframes spinLoader { to { transform: rotate(360deg); } }
+</style>
 </body>
 </html>
