@@ -137,14 +137,10 @@ function validateForm() {
   return true
 }
 
-// 显示 / 隐藏加载层
-function showLoadingLayer() {
-  var layer = document.getElementById("submitLoadingLayer")
-  if (layer) layer.style.display = "flex"
-}
+// 隐藏加载层（关闭 showLoadingOverlay 创建的遮罩）
 function hideLoadingLayer() {
-  var layer = document.getElementById("submitLoadingLayer")
-  if (layer) layer.style.display = "none"
+  var overlay = document.getElementById("loadingOverlay")
+  if (overlay) overlay.style.display = "none"
 }
 
 // 提交表单
@@ -155,9 +151,9 @@ async function submitForm(event) {
     return
   }
 
-  // 验证通过：显示加载层，不可手动关闭
+  // 验证通过：调用统一的加载层函数，不可手动关闭
   // 不在此刷新验证码，refreshCaptcha() 会让后端重新生成 Session 值导致校验失败
-  showLoadingLayer()
+  showLoadingOverlay("数据正在飞速上传中，请稍等...")
 
   try {
     // 上传图片
@@ -195,10 +191,10 @@ async function submitForm(event) {
     formData.append("captcha",  document.getElementById("yzm").value.trim())
 
     // 可选字段
-    var nums  = document.querySelector('select[name="nums"]');   if (nums  && nums.value)       formData.append("nums",   nums.value)
-    var age   = document.querySelector('select[name="age"]');    if (age   && age.value)        formData.append("age",    age.value)
+    var nums  = document.querySelector('select[name="nums"]');   if (nums  && nums.value)        formData.append("nums",   nums.value)
+    var age   = document.querySelector('select[name="age"]');    if (age   && age.value)         formData.append("age",    age.value)
     var wmtj  = document.querySelector('input[name="wmtj"]');    if (wmtj  && wmtj.value.trim()) formData.append("wmtj",   wmtj.value.trim())
-    var price = document.querySelector('input[name="price"]');   if (price && price.value.trim()) formData.append("price",  price.value.trim())
+    var price = document.querySelector('input[name="price"]');   if (price && price.value.trim()) formData.append("price", price.value.trim())
     var mob   = document.querySelector('input[name="mobile"]');  if (mob   && mob.value.trim())  formData.append("mobile", mob.value.trim())
     var wx    = document.querySelector('input[name="weixin"]');  if (wx    && wx.value.trim())   formData.append("weixin", wx.value.trim())
     var qq    = document.querySelector('input[name="qq"]');      if (qq    && qq.value.trim())   formData.append("qq",     qq.value.trim())
@@ -220,8 +216,8 @@ async function submitForm(event) {
     hideLoadingLayer()
 
     if (result.code === 200) {
-      alert("发布成功");
-      window.location.href='user.html';
+      alert("发布成功")
+      window.location.href = "user.html"
     } else {
       // 后端返回失败后刷新验证码（此时 Session 更新不影响本次请求）
       refreshCaptcha()
