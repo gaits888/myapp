@@ -588,8 +588,9 @@ async function handleFormSubmit(e) {
     return
   }
 
-  // 验证通过：显示加载层（不可手动关闭）
-  // 注意：不在此处刷新验证码，否则后端 Session 验证码会更新导致校验失败
+  // 验证通过：刷新验证码图片（只刷新图片，不清空输入框的值，不影响后端校验）
+  refreshCaptcha()
+  // 显示加载层，不可手动关闭
   showLoadingLayer()
 
   try {

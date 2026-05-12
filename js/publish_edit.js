@@ -339,7 +339,9 @@ function handleFormSubmit(e) {
     return false;
   }
 
-  // 验证通过：显示加载层（不在此刷新验证码，否则 Session 值更新导致校验失败）
+  // 验证通过：先刷新验证码图片（仅刷新图片显示，不清空已填写的值，不影响后端校验）
+  refreshCaptcha();
+  // 显示加载层，不可手动关闭
   showLoadingLayer();
 
   // 提交表单数据到后端
