@@ -21,14 +21,10 @@ function showLoadingOverlay(text) {
     }
 }
 
-// 显示 / 隐藏加载层
-function showLoadingLayer() {
-  var layer = document.getElementById("submitLoadingLayer");
-  if (layer) layer.style.display = "flex";
-}
+// 隐藏加载层（关闭 showLoadingOverlay 创建的遮罩）
 function hideLoadingLayer() {
-  var layer = document.getElementById("submitLoadingLayer");
-  if (layer) layer.style.display = "none";
+  var overlay = document.getElementById("loadingOverlay");
+  if (overlay) overlay.style.display = "none";
 }
 
 // 表单验证 - 使用alert()依次提示
@@ -293,7 +289,7 @@ function submitForm(event) {
 
   // 验证通过：显示加载层，不可手动关闭
   // 不在此刷新验证码，refreshCaptcha() 会让后端重新生成 Session 值导致校验失败
-  showLoadingLayer();
+  showLoadingOverlay("数据正在飞速上传中，请稍等...");
 
   // 收集并提交表单数据
   function collectAndSubmit() {
