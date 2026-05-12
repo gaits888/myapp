@@ -312,8 +312,8 @@ if ($citypid == 0) {
         window.infoData = <?php echo json_encode($info); ?>;
         window.existingImages = <?php echo json_encode($images); ?>;
         window.existingVideos = <?php echo json_encode($videos); ?>;
-        window.provinceSelect = <?php echo $citypid;?>;
-        window.selectedCity = <?php echo $info['cityid']; ?>;
+        window.provinceSelect  = <?php echo json_encode($citypid); ?>;
+        window.selectedCity    = <?php echo json_encode($info['cityid']); ?>;
         window.selectedDistrict = 0;
 
 // 刷新验证码
@@ -466,23 +466,21 @@ function fillFormData() {
 
   const data = window.infoData
 
-  const fields = [
-    "age",
-    "sg",
-    "tz",
-    "xl",
-    "zy",
-    "price",
-    "uname",
-    "mobile",
-    "weixin",
-    "qq",
-  ]
+  // 文本类字段直接赋值
+  const textFields = ["price", "uname", "mobile", "weixin", "qq"]
+  textFields.forEach((field) => {
+    const el = document.querySelector(`[name="${field}"]`)
+    if (el && data[field] !== undefined && data[field] !== null) {
+      el.value = data[field]
+    }
+  })
 
-  fields.forEach((field) => {
-    const input = document.querySelector(`[name="${field}"]`)
-    if (input && data[field]) {
-      input.value = data[field]
+  // select 类字段：强制转字符串确保与 option value 匹配
+  const selectFields = ["age", "sg", "tz", "xl", "zy"]
+  selectFields.forEach((field) => {
+    const el = document.querySelector(`[name="${field}"]`)
+    if (el && data[field] !== undefined && data[field] !== null) {
+      el.value = String(data[field])
     }
   })
 
@@ -572,6 +570,16 @@ function validateForm() {
   return true
 }
 
+// 显示 / 隐藏提交加载层
+function showLoadingLayer() {
+  const layer = document.getElementById("submitLoadingLayer")
+  if (layer) layer.style.display = "flex"
+}
+function hideLoadingLayer() {
+  const layer = document.getElementById("submitLoadingLayer")
+  if (layer) layer.style.display = "none"
+}
+
 // 表单提交处理
 async function handleFormSubmit(e) {
   e.preventDefault()
@@ -580,36 +588,39 @@ async function handleFormSubmit(e) {
     return
   }
 
+  // 验证通过：刷新验证码，显示加载层（不可手动关闭）
+  refreshCaptcha()
+  showLoadingLayer()
+
   try {
+    // 上传图片
     if (window.imageUploader) {
       const imageSuccess = await window.imageUploader.uploadAllFiles()
       if (!imageSuccess) {
+        hideLoadingLayer()
         showInfo("图片上传失败，请重试")
         return
       }
     }
 
+    // 上传视频
     if (window.videoUploader) {
       const videoSuccess = await window.videoUploader.uploadAllFiles()
       if (!videoSuccess) {
+        hideLoadingLayer()
         showInfo("视频上传失败，请重试")
         return
       }
     }
-  } catch (error) {
-    showInfo("文件上传失败，请重试")
-    return
-  }
 
-  const images = window.imageUploader ? window.imageUploader.getFiles() : []
-  const videos = window.videoUploader ? window.videoUploader.getFiles() : []
+    const images = window.imageUploader ? window.imageUploader.getFiles() : []
+    const videos = window.videoUploader ? window.videoUploader.getFiles() : []
 
-  const formData = new FormData(document.getElementById("publishForm"))
-  formData.append("id", window.infoData.id)
-  formData.append("pics", images.join("|"))
-  formData.append("videos", videos.join("|"))
+    const formData = new FormData(document.getElementById("publishForm"))
+    formData.append("id", window.infoData.id)
+    formData.append("pics", images.join("|"))
+    formData.append("videos", videos.join("|"))
 
-  try {
     const response = await fetch("/opers/forum/highend_edit.html", {
       method: "POST",
       body: formData,
@@ -618,8 +629,11 @@ async function handleFormSubmit(e) {
 
     const result = await response.json()
 
+    // 后端返回后关闭加载层
+    hideLoadingLayer()
+
     if (result.code === 200) {
-      showSuccess("修改成功，请等待审核！", "修改成功",100000,'member_publish.html')
+      showSuccess("修改成功，请等待审核！", "修改成功", 100000, 'member_publish.html')
     } else {
       showInfo(result.msg || "修改失败")
       if (result.msg && result.msg.includes("验证码")) {
@@ -627,7 +641,7 @@ async function handleFormSubmit(e) {
       }
     }
   } catch (error) {
-    console.error("[v0] 提交错误:", error)
+    hideLoadingLayer()
     showInfo("网络错误，请重试")
   }
 }
@@ -649,5 +663,16 @@ document.addEventListener("DOMContentLoaded", async () => {
       
     </script>
     <script src="/js/imgvideo.js?t=<?php time();?>"></script>
+
+<!-- 提交加载层：半透明遮罩，不可手动关闭，后端返回后由 JS 移除 -->
+<div id="submitLoadingLayer" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.45);align-items:center;justify-content:center;flex-direction:column;gap:16px;">
+    <div style="width:48px;height:48px;border:5px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spinLoader 0.8s linear infinite;"></div>
+    <p style="color:#fff;font-size:15px;font-weight:500;letter-spacing:1px;margin:0;">数据正在飞速上传中，请稍等...</p>
+</div>
+<style>
+@keyframes spinLoader {
+    to { transform: rotate(360deg); }
+}
+</style>
 </body>
 </html>
