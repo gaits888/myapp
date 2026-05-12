@@ -321,6 +321,16 @@ function validateForm() {
   return true;
 }
 
+// 显示 / 隐藏加载层
+function showLoadingLayer() {
+  var layer = document.getElementById('submitLoadingLayer');
+  if (layer) layer.style.display = 'flex';
+}
+function hideLoadingLayer() {
+  var layer = document.getElementById('submitLoadingLayer');
+  if (layer) layer.style.display = 'none';
+}
+
 // 表单提交处理
 function handleFormSubmit(e) {
   e.preventDefault();
@@ -329,28 +339,26 @@ function handleFormSubmit(e) {
     return false;
   }
 
-  var submitBtn = document.querySelector('.submit-button');
-  if (submitBtn) {
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '提交中...';
-  }
+  // 验证通过：显示加载层（不在此刷新验证码，否则 Session 值更新导致校验失败）
+  showLoadingLayer();
 
-  // 上传文件后提交表单
+  // 提交表单数据到后端
   function submitFormData() {
-    var images = window.imageUploader ? window.imageUploader.getFiles() : [];
-    var videos = window.videoUploader ? window.videoUploader.getFiles() : [];
-
-    var form = document.getElementById("publishForm");
+    var images   = window.imageUploader ? window.imageUploader.getFiles() : [];
+    var videos   = window.videoUploader ? window.videoUploader.getFiles() : [];
+    var form     = document.getElementById('publishForm');
     var formData = new FormData(form);
-    formData.append("id", window.infoData.id);
-    formData.append("pics", images.join("|"));
-    formData.append("videos", videos.join("|"));
+    formData.append('id',     window.infoData.id);
+    formData.append('pics',   images.join('|'));
+    formData.append('videos', videos.join('|'));
 
     var xhr = new XMLHttpRequest();
     xhr.open('POST', '/opers/forum/publish_edit.html', true);
 
     xhr.onreadystatechange = function() {
       if (xhr.readyState === 4) {
+        // 后端返回后关闭加载层
+        hideLoadingLayer();
         if (xhr.status === 200) {
           try {
             var result = JSON.parse(xhr.responseText);
@@ -362,59 +370,37 @@ function handleFormSubmit(e) {
               if (result.msg && result.msg.indexOf('验证码') !== -1) {
                 refreshCaptcha();
               }
-              if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>确认修改';
-              }
             }
-          } catch (e) {
-            alert('数据解析错误');
-            if (submitBtn) {
-              submitBtn.disabled = false;
-              submitBtn.innerHTML = '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>确认修改';
-            }
+          } catch (err) {
+            alert('数据解析错误，请重试');
           }
         } else {
           alert('网络错误，请重试');
-          if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>确认修改';
-          }
         }
       }
     };
 
     xhr.onerror = function() {
+      hideLoadingLayer();
       alert('网络错误，请重试');
-      if (submitBtn) {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>确认修改';
-      }
     };
 
     xhr.send(formData);
   }
 
-  // 处理文件上传
+  // 先上传图片，再上传视频，最后提交表单
   if (window.imageUploader && window.imageUploader.uploadAllFiles) {
     window.imageUploader.uploadAllFiles().then(function(imageSuccess) {
       if (!imageSuccess) {
+        hideLoadingLayer();
         alert('图片上传失败，请重试');
-        if (submitBtn) {
-          submitBtn.disabled = false;
-          submitBtn.innerHTML = '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>确认修改';
-        }
         return;
       }
-
       if (window.videoUploader && window.videoUploader.uploadAllFiles) {
         window.videoUploader.uploadAllFiles().then(function(videoSuccess) {
           if (!videoSuccess) {
+            hideLoadingLayer();
             alert('视频上传失败，请重试');
-            if (submitBtn) {
-              submitBtn.disabled = false;
-              submitBtn.innerHTML = '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>确认修改';
-            }
             return;
           }
           submitFormData();
