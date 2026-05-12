@@ -442,16 +442,16 @@ function uploadAllFiles() {
     return new Promise(function(resolve, reject) {
         var imagePromise, videoPromise;
         
-        // 上传图片
+        // 上传图片（调用 imgvideo.js 中 MediaUploader 的 uploadAllFiles 方法）
         if (window.imageUploader && window.imageUploader.files && window.imageUploader.files.length > 0) {
-            imagePromise = window.imageUploader.uploadAll();
+            imagePromise = window.imageUploader.uploadAllFiles();
         } else {
             imagePromise = Promise.resolve(true);
         }
         
         // 上传视频
         if (window.videoUploader && window.videoUploader.files && window.videoUploader.files.length > 0) {
-            videoPromise = window.videoUploader.uploadAll();
+            videoPromise = window.videoUploader.uploadAllFiles();
         } else {
             videoPromise = Promise.resolve(true);
         }
@@ -597,22 +597,7 @@ function submitForm(e) {
             addEvent(form, 'submit', submitForm);
         }
         
-        // 初始化图片上传组件
-        if (typeof MediaUploader !== 'undefined') {
-            window.imageUploader = new MediaUploader({
-                container: '#imageUploadContainer',
-                type: 'image',
-                maxFiles: 9,
-                maxSize: 10
-            });
-            
-            window.videoUploader = new MediaUploader({
-                container: '#videoUploadContainer',
-                type: 'video',
-                maxFiles: 3,
-                maxSize: 50
-            });
-        }
+        // 图片/视频上传组件由 imgvideo.js 统一初始化，此处无需重复
     }
     
     // 兼容各种浏览器的 DOM ready
