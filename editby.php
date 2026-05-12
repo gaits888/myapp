@@ -532,9 +532,8 @@ async function handleFormSubmit(e) {
     return
   }
 
-  // 验证通过：刷新验证码图片（只刷新图片，不清空输入框的值，不影响后端校验）
-  refreshCaptcha()
-  // 显示加载层，不可手动关闭
+  // 验证通过：显示加载层，不可手动关闭
+  // 此处不刷新验证码，refreshCaptcha() 会让后端重新生成 Session 值导致校验失败
   showLoadingLayer()
 
   try {
@@ -580,10 +579,8 @@ async function handleFormSubmit(e) {
     if (result.code === 200) {
       showSuccess("修改成功，请等待审核！", "修改成功", 100000, 'member_publish.html')
     } else {
+      refreshCaptcha()
       showInfo(result.msg || "修改失败")
-      if (result.msg && result.msg.includes("验证码")) {
-        refreshCaptcha()
-      }
     }
   } catch (error) {
     hideLoadingLayer()

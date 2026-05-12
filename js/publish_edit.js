@@ -339,9 +339,9 @@ function handleFormSubmit(e) {
     return false;
   }
 
-  // 验证通过：先刷新验证码图片（仅刷新图片显示，不清空已填写的值，不影响后端校验）
-  refreshCaptcha();
-  // 显示加载层，不可手动关闭
+  // 验证通过：显示加载层，不可手动关闭
+  // 注意：此处不刷新验证码，refreshCaptcha() 会让后端重新生成 Session 值导致校验失败
+  // 验证码在后端返回结果后再刷新
   showLoadingLayer();
 
   // 提交表单数据到后端
@@ -368,10 +368,9 @@ function handleFormSubmit(e) {
               alert('修改成功，请等待审核！');
               window.location.href = 'member_publish.html';
             } else {
+              // 后端返回后统一刷新验证码（此时 Session 更新不影响本次已失败的请求）
+              refreshCaptcha();
               alert(result.msg || '修改失败');
-              if (result.msg && result.msg.indexOf('验证码') !== -1) {
-                refreshCaptcha();
-              }
             }
           } catch (err) {
             alert('数据解析错误，请重试');
