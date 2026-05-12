@@ -56,129 +56,77 @@ function showAlert(message, title = "提示", duration = 2000, redirectUrl = nul
 }
 
 function validateForm() {
-  // 清除所有错误提示
-  document.querySelectorAll(".form-error").forEach((el) => el.classList.remove("show"))
+  // 按页面顺序依次校验，遇到第一个未填/未选立即 alert + focus，返回 false
+  var fields = [
+    { name: "title",    isSelect: false, msg: "请输入信息标题" },
+    { name: "province", isSelect: true,  msg: "请选择省份" },
+    { name: "city",     isSelect: true,  msg: "请选择城市" },
+    { name: "district", isSelect: true,  msg: "请选择区县" },
+    { name: "typeid",   isSelect: true,  msg: "请选择发布类别" },
+    { name: "laiyuan",  isSelect: true,  msg: "请选择信息来源" },
+    { name: "pj",       isSelect: true,  msg: "请选择综合评价" },
+    { name: "content",  isSelect: false, msg: "请填写详细内容" },
+    { name: "uname",    isSelect: false, msg: "请输入联系人姓名" },
+    { name: "address",  isSelect: false, msg: "请输入详细地址" },
+  ]
 
-  // 1. 验证标题（必填）
-  const title = document.querySelector('input[name="title"]')
-  if (!title || !title.value.trim()) {
-    showFieldError("title", "请输入信息标题")
-    return false
-  }
-
-  // 2. 验证省份（必填）
-  const province = document.getElementById("province")
-  if (!province || !province.value) {
-    showFieldError("province", "请选择省份")
-    return false
-  }
-
-  // 3. 验证城市（必填）
-  const city = document.getElementById("city")
-  if (!city || !city.value) {
-    showFieldError("city", "请选择城市")
-    return false
-  }
-
-  // 4. 验证区县（必填）
-  const district = document.getElementById("district")
-  if (!district || !district.value) {
-    showFieldError("district", "请选择区县")
-    return false
-  }
-
-  // 5. 验证发布类别（必填）
-  const typeid = document.querySelector('select[name="typeid"]')
-  if (!typeid || !typeid.value) {
-    showFieldError("typeid", "请选择发布类别")
-    return false
-  }
-
-  // 6. 验证信息来源（必填）
-  const laiyuan = document.querySelector('select[name="laiyuan"]')
-  if (!laiyuan || !laiyuan.value) {
-    showFieldError("laiyuan", "请选择信息来源")
-    return false
-  }
-
-  // 7. 验证综合评价（必填）
-  const pj = document.querySelector('select[name="pj"]')
-  if (!pj || !pj.value) {
-    showFieldError("pj", "请选择综合评价")
-    return false
-  }
-
-  // 8. 验证详细内容（必填）
-  const content = document.querySelector('textarea[name="content"]')
-  if (!content || !content.value.trim()) {
-    showFieldError("content", "请填写详细内容")
-    return false
-  } else if (content.value.trim().length < 10) {
-    showFieldError("content", "详细内容至少需要10个字符")
-    return false
-  }
-
-  // 9. 验证联系人（必填）
-  const uname = document.querySelector('input[name="uname"]')
-  if (!uname || !uname.value.trim()) {
-    showFieldError("uname", "请输入联系人姓名")
-    return false
-  }
-
-  // 10. 验证联系方式（至少填写一项）
-  const mobile = document.querySelector('input[name="mobile"]')
-  const weixin = document.querySelector('input[name="weixin"]')
-  const qq = document.querySelector('input[name="qq"]')
-  const yuni = document.querySelector('input[name="yuni"]')
-
-  const hasContact =
-    (mobile && mobile.value.trim()) ||
-    (weixin && weixin.value.trim()) ||
-    (qq && qq.value.trim()) ||
-    (yuni && yuni.value.trim())
-
-  if (!hasContact) {
-    // 显示联系方式区域的错误提示
-    const contactError = document.querySelector('.form-error[data-field="contact"]')
-    if (contactError) {
-      contactError.classList.add("show")
-      contactError.scrollIntoView({ behavior: "smooth", block: "center" })
-    }
-    return false
-  }
-
-  // 11. 验证详细地址（必填）
-  const address = document.querySelector('input[name="address"]')
-  if (!address || !address.value.trim()) {
-    showFieldError("address", "请输入详细地址")
-    return false
-  }
-
-  // 12. 验证图片上传（至少一张）
-  if (window.imageUploader) {
-    const images = window.imageUploader.files
-    if (!images || images.length === 0) {
-      showAlert("请至少上传一张图片")
-      // 滚动到图片上传区域
-      const imageSection = document.getElementById("imageUploadContainer")
-      if (imageSection) {
-        imageSection.scrollIntoView({ behavior: "smooth", block: "center" })
-      }
+  for (var i = 0; i < fields.length; i++) {
+    var f  = fields[i]
+    var el = document.querySelector('[name="' + f.name + '"]')
+    if (!el) continue
+    var val   = el.value ? el.value.trim() : ""
+    var empty = f.isSelect ? !val : !val
+    if (empty) {
+      alert(f.msg)
+      el.focus()
       return false
     }
-  } else {
-    showAlert("图片上传组件未初始化")
+  }
+
+  // 联系方式：手机、微信、QQ、与你号 至少填写一项
+  var mobileEl = document.querySelector('input[name="mobile"]')
+  var weixinEl = document.querySelector('input[name="weixin"]')
+  var qqEl     = document.querySelector('input[name="qq"]')
+  var yuniEl   = document.querySelector('input[name="yuni"]')
+  var hasContact = (mobileEl && mobileEl.value.trim()) ||
+                   (weixinEl && weixinEl.value.trim()) ||
+                   (qqEl     && qqEl.value.trim())     ||
+                   (yuniEl   && yuniEl.value.trim())
+  if (!hasContact) {
+    alert("手机号、微信、QQ、与你号 至少填写一项")
+    mobileEl && mobileEl.focus()
     return false
   }
 
-  // 13. 验证验证码（必填）
-  const yzm = document.getElementById("yzm")
-  if (!yzm || !yzm.value.trim()) {
-    showFieldError("yzm", "请输入验证码")
+  // 图片：至少上传一张
+  if (window.imageUploader) {
+    if (!window.imageUploader.files || window.imageUploader.files.length === 0) {
+      alert("请至少上传一张图片")
+      var imgContainer = document.getElementById("imageUploadContainer")
+      if (imgContainer) imgContainer.scrollIntoView({ behavior: "smooth", block: "center" })
+      return false
+    }
+  }
+
+  // 验证码
+  var yzmEl = document.getElementById("yzm")
+  if (!yzmEl || !yzmEl.value.trim()) {
+    alert("请输入验证码")
+    yzmEl && yzmEl.focus()
     return false
   }
 
   return true
+}
+
+// 显示 / 隐藏加载层
+function showLoadingLayer() {
+  var layer = document.getElementById("submitLoadingLayer")
+  if (layer) layer.style.display = "flex"
+}
+function hideLoadingLayer() {
+  var layer = document.getElementById("submitLoadingLayer")
+  if (layer) layer.style.display = "none"
 }
 
 // 提交表单
@@ -189,120 +137,81 @@ async function submitForm(event) {
     return
   }
 
-  // 获取提交按钮
-  const submitBtn = document.querySelector(".submit-button")
-  if (!submitBtn) return
-
-  const originalHTML = submitBtn.innerHTML
-  submitBtn.disabled = true
-  submitBtn.innerHTML =
-    '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>提交中...'
+  // 验证通过：显示加载层，不可手动关闭
+  // 不在此刷新验证码，refreshCaptcha() 会让后端重新生成 Session 值导致校验失败
+  showLoadingLayer()
 
   try {
-    // 先上传所有图片和视频
-    submitBtn.innerHTML =
-      '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>上传文件中...'
-
     // 上传图片
     if (window.imageUploader) {
-      const imageResult = await window.imageUploader.uploadAllFiles()
+      var imageResult = await window.imageUploader.uploadAllFiles()
       if (!imageResult) {
-        throw new Error("图片上传失败")
+        hideLoadingLayer()
+        alert("图片上传失败，请重试")
+        return
       }
     }
 
     // 上传视频
     if (window.videoUploader) {
-      const videoResult = await window.videoUploader.uploadAllFiles()
+      var videoResult = await window.videoUploader.uploadAllFiles()
       if (!videoResult) {
-        throw new Error("视频上传失败")
+        hideLoadingLayer()
+        alert("视频上传失败，请重试")
+        return
       }
     }
 
-    submitBtn.innerHTML =
-      '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>提交数据中...'
-
     // 收集表单数据
-    const formData = new FormData()
-
-    // 基本信息
-    formData.append("title", document.querySelector('input[name="title"]').value.trim())
+    var formData = new FormData()
+    formData.append("title",    document.querySelector('input[name="title"]').value.trim())
     formData.append("province", document.getElementById("province").value)
-    formData.append("city", document.getElementById("city").value)
+    formData.append("city",     document.getElementById("city").value)
     formData.append("district", document.getElementById("district").value)
-    formData.append("typeid", document.querySelector('select[name="typeid"]').value)
-    formData.append("laiyuan", document.querySelector('select[name="laiyuan"]').value)
-    formData.append("pj", document.querySelector('select[name="pj"]').value)
+    formData.append("typeid",   document.querySelector('select[name="typeid"]').value)
+    formData.append("laiyuan",  document.querySelector('select[name="laiyuan"]').value)
+    formData.append("pj",       document.querySelector('select[name="pj"]').value)
+    formData.append("content",  document.querySelector('textarea[name="content"]').value.trim())
+    formData.append("uname",    document.querySelector('input[name="uname"]').value.trim())
+    formData.append("address",  document.querySelector('input[name="address"]').value.trim())
+    formData.append("captcha",  document.getElementById("yzm").value.trim())
 
-    // 详细信息（可选字段）
-    const nums = document.querySelector('select[name="nums"]')
-    if (nums && nums.value) formData.append("nums", nums.value)
+    // 可选字段
+    var nums  = document.querySelector('select[name="nums"]');   if (nums  && nums.value)       formData.append("nums",   nums.value)
+    var age   = document.querySelector('select[name="age"]');    if (age   && age.value)        formData.append("age",    age.value)
+    var wmtj  = document.querySelector('input[name="wmtj"]');    if (wmtj  && wmtj.value.trim()) formData.append("wmtj",   wmtj.value.trim())
+    var price = document.querySelector('input[name="price"]');   if (price && price.value.trim()) formData.append("price",  price.value.trim())
+    var mob   = document.querySelector('input[name="mobile"]');  if (mob   && mob.value.trim())  formData.append("mobile", mob.value.trim())
+    var wx    = document.querySelector('input[name="weixin"]');  if (wx    && wx.value.trim())   formData.append("weixin", wx.value.trim())
+    var qq    = document.querySelector('input[name="qq"]');      if (qq    && qq.value.trim())   formData.append("qq",     qq.value.trim())
+    var yuni  = document.querySelector('input[name="yuni"]');    if (yuni  && yuni.value.trim()) formData.append("yuni",   yuni.value.trim())
 
-    const age = document.querySelector('select[name="age"]')
-    if (age && age.value) formData.append("age", age.value)
+    // 已上传文件路径
+    if (window.imageUploader) formData.append("images", JSON.stringify(window.imageUploader.getFiles()))
+    if (window.videoUploader) formData.append("videos", JSON.stringify(window.videoUploader.getFiles()))
 
-    const wmtj = document.querySelector('input[name="wmtj"]')
-    if (wmtj && wmtj.value.trim()) formData.append("wmtj", wmtj.value.trim())
-
-    const price = document.querySelector('input[name="price"]')
-    if (price && price.value.trim()) formData.append("price", price.value.trim())
-
-    formData.append("content", document.querySelector('textarea[name="content"]').value.trim())
-
-    // 联系方式
-    formData.append("uname", document.querySelector('input[name="uname"]').value.trim())
-
-    const mobile = document.querySelector('input[name="mobile"]')
-    if (mobile && mobile.value.trim()) formData.append("mobile", mobile.value.trim())
-
-    const weixin = document.querySelector('input[name="weixin"]')
-    if (weixin && weixin.value.trim()) formData.append("weixin", weixin.value.trim())
-
-    const qq = document.querySelector('input[name="qq"]')
-    if (qq && qq.value.trim()) formData.append("qq", qq.value.trim())
-
-    const yuni = document.querySelector('input[name="yuni"]')
-    if (yuni && yuni.value.trim()) formData.append("yuni", yuni.value.trim())
-
-    formData.append("address", document.querySelector('input[name="address"]').value.trim())
-
-    // 验证码
-    formData.append("captcha", document.getElementById("yzm").value.trim())
-
-    // 图片和视频（从上传组件获取已上传的文件路径）
-    if (window.imageUploader) {
-      const images = window.imageUploader.getFiles()
-      formData.append("images", JSON.stringify(images))
-    }
-
-    if (window.videoUploader) {
-      const videos = window.videoUploader.getFiles()
-      formData.append("videos", JSON.stringify(videos))
-    }
-
-    // 发送请求
-    const response = await fetch("/opers/forum/publish.html", {
+    var response = await fetch("/opers/forum/publish.html", {
       method: "POST",
       body: formData,
       credentials: "include",
     })
 
-    const result = await response.json()
+    var result = await response.json()
+
+    // 后端返回后关闭加载层
+    hideLoadingLayer()
 
     if (result.code === 200) {
       showAlert("发布成功！", "发布成功", 3000, "user.php")
     } else {
-      showAlert(result.msg || "发布失败，请重试")
-      // 刷新验证码
+      // 后端返回失败后刷新验证码（此时 Session 更新不影响本次请求）
       refreshCaptcha()
-      submitBtn.disabled = false
-      submitBtn.innerHTML = originalHTML
+      showAlert(result.msg || "发布失败，请重试")
     }
   } catch (error) {
-    console.error("提交错误:", error)
+    hideLoadingLayer()
+    refreshCaptcha()
     showAlert(error.message || "网络错误，请稍后重试")
-    submitBtn.disabled = false
-    submitBtn.innerHTML = originalHTML
   }
 }
 
