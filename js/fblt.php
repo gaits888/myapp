@@ -163,7 +163,7 @@ $provinceArr = db('areab')->where(['pid' => 0])->field('id, fullname')->select()
                 </h3>
                 
                 <div class="form-item">
-                    <label class="form-label">
+                    <label class="form-label required">
                         场所人数
                     </label>
                     <select name="nums" class="form-select">
@@ -179,7 +179,7 @@ $provinceArr = db('areab')->where(['pid' => 0])->field('id, fullname')->select()
                 </div>
                 
                 <div class="form-item">
-                    <label class="form-label">
+                    <label class="form-label required">
                         年龄大小
                     </label>
                     <select name="age" class="form-select">
@@ -196,14 +196,14 @@ $provinceArr = db('areab')->where(['pid' => 0])->field('id, fullname')->select()
                 </div>
                 
                 <div class="form-item">
-                    <label class="form-label">
+                    <label class="form-label required">
                         外貌形象
                     </label>
                     <input type="text" name="wmtj" class="form-input" placeholder="填写如：漂亮大方 高贵优雅 身材好 性感 等">
                 </div>
                 
                 <div class="form-item">
-                    <label class="form-label">
+                    <label class="form-label required">
                         服务价格
                     </label>
                     <input type="text" name="price" class="form-input" placeholder="填写如：一次800, 一夜3000，私聊 等">
@@ -322,7 +322,7 @@ $provinceArr = db('areab')->where(['pid' => 0])->field('id, fullname')->select()
                             <img id="captchaImg" src="/lib/yzmcode.html" alt="验证码" class="captcha-img" onclick="refreshCaptcha()">
                         </div>
                     </div>
-                    <div class="form-error" data-field="yzm">请输入���证码</div>
+                    <div class="form-error" data-field="yzm">请输入�����证码</div>
                     <div class="form-hint">点击验证码图片可刷新</div>
                 </div>
             </div>

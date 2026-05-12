@@ -83,6 +83,10 @@ function validateForm() {
     { name: "typeid",   isSelect: true,  msg: "请选择发布类别" },
     { name: "laiyuan",  isSelect: true,  msg: "请选择信息来源" },
     { name: "pj",       isSelect: true,  msg: "请选择综合评价" },
+    { name: "nums",     isSelect: true,  msg: "请选择场所人数" },
+    { name: "age",      isSelect: true,  msg: "请选择年龄大小" },
+    { name: "wmtj",     isSelect: false, msg: "请输入外貌形象" },
+    { name: "price",    isSelect: false, msg: "请输入服务价格" },
     { name: "content",  isSelect: false, msg: "请填写详细内容" },
     { name: "uname",    isSelect: false, msg: "请输入联系人" },
     { name: "address",  isSelect: false, msg: "请输入详细地址" },
@@ -190,11 +194,11 @@ async function submitForm(event) {
     formData.append("address",  document.querySelector('input[name="address"]').value.trim())
     formData.append("captcha",  document.getElementById("yzm").value.trim())
 
-    // 可选字段
-    var nums  = document.querySelector('select[name="nums"]');   if (nums  && nums.value)        formData.append("nums",   nums.value)
-    var age   = document.querySelector('select[name="age"]');    if (age   && age.value)         formData.append("age",    age.value)
-    var wmtj  = document.querySelector('input[name="wmtj"]');    if (wmtj  && wmtj.value.trim()) formData.append("wmtj",   wmtj.value.trim())
-    var price = document.querySelector('input[name="price"]');   if (price && price.value.trim()) formData.append("price", price.value.trim())
+    // 必填字段（已在 validateForm 校验过，此处直接 append）
+    formData.append("nums",  document.querySelector('select[name="nums"]').value)
+    formData.append("age",   document.querySelector('select[name="age"]').value)
+    formData.append("wmtj",  document.querySelector('input[name="wmtj"]').value.trim())
+    formData.append("price", document.querySelector('input[name="price"]').value.trim())
     var mob   = document.querySelector('input[name="mobile"]');  if (mob   && mob.value.trim())  formData.append("mobile", mob.value.trim())
     var wx    = document.querySelector('input[name="weixin"]');  if (wx    && wx.value.trim())   formData.append("weixin", wx.value.trim())
     var qq    = document.querySelector('input[name="qq"]');      if (qq    && qq.value.trim())   formData.append("qq",     qq.value.trim())
