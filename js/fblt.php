@@ -14,6 +14,48 @@ $provinceArr = db('areab')->where(['pid' => 0])->field('id, fullname')->select()
 <link rel="stylesheet" href="/css/comm.css">
 <link rel="stylesheet" href="/css/imgvideo.css?t=<?php echo time(); ?>">
 <link rel="stylesheet" href="/css/fb.css?t=<?php echo time(); ?>">
+<style>
+    /* 全屏遮罩层样式 */
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 99999;
+    }
+    .loading-overlay .loading-spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid rgba(255, 255, 255, 0.3);
+        border-top-color: #ff5e7b;
+        border-radius: 50%;
+        -webkit-animation: spin 1s linear infinite;
+        animation: spin 1s linear infinite;
+        margin-bottom: 15px;
+    }
+    .loading-overlay .loading-text {
+        color: #fff;
+        font-size: 16px;
+        text-align: center;
+        padding: 0 20px;
+    }
+    @-webkit-keyframes spin {
+        0% { -webkit-transform: rotate(0deg); transform: rotate(0deg); }
+        100% { -webkit-transform: rotate(360deg); transform: rotate(360deg); }
+    }
+    @keyframes spin {
+        0% { -webkit-transform: rotate(0deg); transform: rotate(0deg); }
+        100% { -webkit-transform: rotate(360deg); transform: rotate(360deg); }
+    }
+    </style>
 </head>
 <body>
     <?php 
@@ -197,7 +239,7 @@ $provinceArr = db('areab')->where(['pid' => 0])->field('id, fullname')->select()
                     <label class="form-label required">
                         联系人
                     </label>
-                    <input type="text" name="uname" class="form-input" placeholder="请输入联系人姓名">
+                    <input type="text" name="uname" class="form-input" placeholder="请输入联系人">
                     <div class="form-error" data-field="uname">请输入联系人姓名</div>
                 </div>
                 
@@ -297,8 +339,8 @@ $provinceArr = db('areab')->where(['pid' => 0])->field('id, fullname')->select()
 
 
 
-    <script src="/js/imgvideo.js"></script>
-    <script src="/js/publish.js"></script>
+    <script src="/js/imgvideo.js?t=<?php echo time(); ?>"></script>
+    <script src="/js/publish.js?t=<?php echo time(); ?>"></script>
 
     <!-- 提交加载层：半透明遮罩，不可手动关闭，后端返回后由 JS 移除 -->
     <div id="submitLoadingLayer" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.45);align-items:center;justify-content:center;flex-direction:column;gap:16px;">
