@@ -380,6 +380,7 @@ async function getRegionList(pid, type) {
 // 初始化省份选择器（city 为文本框，无需动态加载城市列表）
 async function initCitySelector() {
   const provinceSelect = document.getElementById("province")
+  if (!provinceSelect) return
 
   const provinces = await getRegionList(0, 1)
 
@@ -392,18 +393,14 @@ async function initCitySelector() {
       provinceSelect.appendChild(option)
     })
 
-    // 回显已保存的省份
+    // 省份选项加载完成后再回显，确保 option 已存在
     if (window.provinceSelect) {
-      provinceSelect.value = window.provinceSelect
+      provinceSelect.value = String(window.provinceSelect)
     }
   }
 
   provinceSelect.addEventListener("change", function () {
     window.provinceSelect = this.value
-  })
-
-  districtSelect.addEventListener("change", function () {
-    window.selectedDistrict = this.value
   })
 }
 
@@ -423,6 +420,7 @@ function fillFormData() {
   })
 
   // select 类字段：强制转为字符串再赋值，确保与 option value 类型一致
+  // province 由 initCitySelector 在选项加载完成后回显，此处跳过
   const selectFields = ["age", "sg", "tz", "xl", "zy"]
   selectFields.forEach((field) => {
     const el = document.querySelector(`[name="${field}"]`)
@@ -474,7 +472,7 @@ function validateForm() {
     { name: "aihao",    msg: "请输入兴趣爱好", isSelect: false },
     { name: "price",    msg: "请输入约会价格", isSelect: false },
     { name: "content",  msg: "请填写详细内容", isSelect: false },
-    { name: "uname",    msg: "请输入昵称",    isSelect: false },
+    { name: "uname",    msg: "请输��昵称",    isSelect: false },
   ]
 
   for (const field of requiredFields) {
