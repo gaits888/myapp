@@ -3,8 +3,15 @@
  * 发布页面表单验证和提交
  */
 
-// 防重复提交标志
-var isSubmitting = false;
+// 显示 / 隐藏加载层
+function showLoadingLayer() {
+  var layer = document.getElementById("submitLoadingLayer");
+  if (layer) layer.style.display = "flex";
+}
+function hideLoadingLayer() {
+  var layer = document.getElementById("submitLoadingLayer");
+  if (layer) layer.style.display = "none";
+}
 
 // 表单验证 - 使用alert()依次提示
 function validateForm() {
@@ -222,12 +229,14 @@ function updateDistrictOptions(cityId) {
 }
 
 // 提交表单数据（使用传统AJAX）
-function submitFormData(formData, submitBtn, originalHTML) {
+function submitFormData(formData) {
   var xhr = new XMLHttpRequest();
   xhr.open('POST', '/opers/forum/fbgd.html', true);
 
   xhr.onreadystatechange = function() {
     if (xhr.readyState === 4) {
+      // 后端返回后关闭加载层
+      hideLoadingLayer();
       if (xhr.status === 200) {
         try {
           var result = JSON.parse(xhr.responseText);
@@ -235,32 +244,22 @@ function submitFormData(formData, submitBtn, originalHTML) {
             alert('发布成功，等待审核！');
             window.location.href = 'user.html';
           } else {
-            alert(result.msg || '发布失败，请重试');
+            // 失败后刷新验证码（此时 Session 更新不影响本次请求）
             refreshCaptcha();
-            isSubmitting = false;
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = originalHTML;
+            alert(result.msg || '发布失败，请重试');
           }
         } catch (e) {
-          alert('数据解析错误');
-          isSubmitting = false;
-          submitBtn.disabled = false;
-          submitBtn.innerHTML = originalHTML;
+          alert('数据解析错误，请重试');
         }
       } else {
         alert('网络错误，请重试');
-        isSubmitting = false;
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = originalHTML;
       }
     }
   };
 
   xhr.onerror = function() {
+    hideLoadingLayer();
     alert('网络错误，请重试');
-    isSubmitting = false;
-    submitBtn.disabled = false;
-    submitBtn.innerHTML = originalHTML;
   };
 
   xhr.send(formData);
@@ -270,67 +269,39 @@ function submitFormData(formData, submitBtn, originalHTML) {
 function submitForm(event) {
   event.preventDefault();
 
-  // 防重复提交检查
-  if (isSubmitting) {
-    alert('正在提交中，请勿重复点击');
-    return false;
-  }
-
   if (!validateForm()) {
     return false;
   }
 
-  var submitBtn = document.querySelector(".submit-button");
-  if (!submitBtn) return false;
+  // 验证通过：显示加载层，不可手动关闭
+  // 不在此刷新验证码，refreshCaptcha() 会让后端重新生成 Session 值导致校验失败
+  showLoadingLayer();
 
-  // 设置提交锁
-  isSubmitting = true;
-
-  var originalHTML = submitBtn.innerHTML;
-  submitBtn.disabled = true;
-  submitBtn.innerHTML = '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>上传文件中...';
-
-  // 收集表单数据的函数
+  // 收集并提交表单数据
   function collectAndSubmit() {
-    submitBtn.innerHTML = '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>提交数据中...';
-
     var formData = new FormData();
 
-    // 基本信息
     formData.append("province", document.getElementById("province").value);
-    formData.append("city", document.getElementById("city").value);
+    formData.append("city",     document.getElementById("city").value);
 
-    // 年龄、身高、体重、学历、职业
     var ageField = document.querySelector('select[name="age"]');
-    if (ageField && ageField.value && ageField.value !== "0") {
-      formData.append("age", ageField.value);
-    }
+    if (ageField && ageField.value && ageField.value !== "0") formData.append("age", ageField.value);
 
     var sgField = document.querySelector('select[name="sg"]');
-    if (sgField && sgField.value && sgField.value !== "0") {
-      formData.append("sg", sgField.value);
-    }
+    if (sgField && sgField.value && sgField.value !== "0") formData.append("sg", sgField.value);
 
     var tzField = document.querySelector('select[name="tz"]');
-    if (tzField && tzField.value && tzField.value !== "0") {
-      formData.append("tz", tzField.value);
-    }
+    if (tzField && tzField.value && tzField.value !== "0") formData.append("tz", tzField.value);
 
     var xlField = document.querySelector('select[name="xl"]');
-    if (xlField && xlField.value && xlField.value !== "0") {
-      formData.append("xl", xlField.value);
-    }
+    if (xlField && xlField.value && xlField.value !== "0") formData.append("xl", xlField.value);
 
     var zyField = document.querySelector('select[name="zy"]');
-    if (zyField && zyField.value && zyField.value !== "0") {
-      formData.append("zy", zyField.value);
-    }
+    if (zyField && zyField.value && zyField.value !== "0") formData.append("zy", zyField.value);
 
-    // 价格
     formData.append("price", document.querySelector('input[name="price"]').value.trim());
-
-    // 联系方式
     formData.append("uname", document.querySelector('input[name="uname"]').value.trim());
+    formData.append("captcha", document.getElementById("yzm").value.trim());
 
     var mobile = document.querySelector('input[name="mobile"]');
     if (mobile && mobile.value.trim()) formData.append("mobile", mobile.value.trim());
@@ -341,42 +312,25 @@ function submitForm(event) {
     var qq = document.querySelector('input[name="qq"]');
     if (qq && qq.value.trim()) formData.append("qq", qq.value.trim());
 
-    // 验证码
-    formData.append("captcha", document.getElementById("yzm").value.trim());
+    if (window.imageUploader) formData.append("images", JSON.stringify(window.imageUploader.getFiles()));
+    if (window.videoUploader) formData.append("videos", JSON.stringify(window.videoUploader.getFiles()));
 
-    // 图片和视频
-    if (window.imageUploader) {
-      var images = window.imageUploader.getFiles();
-      formData.append("images", JSON.stringify(images));
-    }
-
-    if (window.videoUploader) {
-      var videos = window.videoUploader.getFiles();
-      formData.append("videos", JSON.stringify(videos));
-    }
-
-    submitFormData(formData, submitBtn, originalHTML);
+    submitFormData(formData);
   }
 
-  // 上传图片
+  // 先上传图片，再上传视频，最后提交
   if (window.imageUploader && window.imageUploader.uploadAllFiles) {
     window.imageUploader.uploadAllFiles().then(function(imageResult) {
       if (!imageResult) {
-        alert('图片上传失败');
-        isSubmitting = false;
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = originalHTML;
+        hideLoadingLayer();
+        alert('图片上传失败，请重试');
         return;
       }
-
-      // 上传视频
       if (window.videoUploader && window.videoUploader.uploadAllFiles) {
         window.videoUploader.uploadAllFiles().then(function(videoResult) {
           if (!videoResult) {
-            alert('视频上传失败');
-            isSubmitting = false;
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = originalHTML;
+            hideLoadingLayer();
+            alert('视频上传失败，请重试');
             return;
           }
           collectAndSubmit();

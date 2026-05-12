@@ -128,7 +128,7 @@ $provinceArr = db('areab')->where(['pid' => 0])->field('id, fullname')->select()
                                <option value="<?php echo $k; ?>"><?php echo $v; ?></option>
                             <?php } ?>
                     </select>
-                    <div class="form-error" data-field="xl">请选择学历</div>
+                    <div class="form-error" data-field="xl">请选择��历</div>
                 </div>
 
 
@@ -290,9 +290,14 @@ $provinceArr = db('areab')->where(['pid' => 0])->field('id, fullname')->select()
 
 <script src="/js/fbgd.js?t=<?php echo time(); ?>"></script>
 <script src="/js/imgvideo.js?t=<?php echo time(); ?>"></script>
- 
-<?php  include_once 'comm/alert_modal.php';  ?>
 
+<!-- 提交加载层：半透明遮罩，不可手动关闭，后端返回后由 JS 移除 -->
+<div id="submitLoadingLayer" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.45);align-items:center;justify-content:center;flex-direction:column;gap:16px;">
+    <div style="width:48px;height:48px;border:5px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spinLoader 0.8s linear infinite;"></div>
+    <p style="color:#fff;font-size:15px;font-weight:500;letter-spacing:1px;margin:0;">数据正在飞速上传中，请稍等...</p>
+</div>
+<style>@keyframes spinLoader { to { transform: rotate(360deg); } }</style>
 
+<?php include_once 'comm/alert_modal.php'; ?>
 </body>
 </html>
