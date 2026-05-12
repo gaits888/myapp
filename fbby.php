@@ -344,88 +344,74 @@ function hideLoadingOverlay() {
     }
 }
 
-// 验证表单 - 从上到下依次验证（严格按照HTML元素顺序）
+// 验证表单 - 从上到下依次验证，遇到第一个未填/未选立即 alert 并聚焦
 function validateForm() {
-    // 定义验证字段顺序（从上到下）
+    // 按页面顺序定义必填字段
     var fields = [
-        { name: 'age', type: 'select', msg: '请选择年龄' },
-        { name: 'sg', type: 'select', msg: '请选择身高' },
-        { name: 'tz', type: 'select', msg: '请选择体重' },
-        { name: 'xl', type: 'select', msg: '请选择学历' },
-        { name: 'zy', type: 'select', msg: '请选择职业' },
-        { name: 'province', type: 'select', msg: '请选择籍贯' },
-        { name: 'city', type: 'input', msg: '请输入所在城市' },
-        { name: 'aihao', type: 'input', msg: '请输入兴趣爱好' },
-        { name: 'price', type: 'input', msg: '请输入约会价格' },
-        { name: 'content', type: 'textarea', msg: '请填写详细内容' },
-        { name: 'uname', type: 'input', msg: '请输入昵称' },
-        { name: 'contact', type: 'contact', msg: '请至少填写一项联系方式（手机号、微信、QQ）' },
-        { name: 'images', type: 'images', msg: '请至少上传一张图片' },
-        { name: 'yzm', type: 'input', msg: '请输入验证码', id: 'yzm' }
+        { name: 'age',     isSelect: true,  msg: '请选择年龄' },
+        { name: 'sg',      isSelect: true,  msg: '请选择身高' },
+        { name: 'tz',      isSelect: true,  msg: '请选择体重' },
+        { name: 'xl',      isSelect: true,  msg: '请选择学历' },
+        { name: 'zy',      isSelect: true,  msg: '请选择职业' },
+        { name: 'province',isSelect: true,  msg: '请选择籍贯' },
+        { name: 'city',    isSelect: false, msg: '请输入所在城市' },
+        { name: 'aihao',   isSelect: false, msg: '请输入兴趣爱好' },
+        { name: 'price',   isSelect: false, msg: '请输入约会价格' },
+        { name: 'content', isSelect: false, msg: '请填写详细内容' },
+        { name: 'uname',   isSelect: false, msg: '请输入昵称' }
     ];
 
-    for (var i = 0; i < fields.length; i++) {
-        var field = fields[i];
-        var el = null;
-        var isEmpty = false;
+    var i, field, el, val;
 
-        if (field.type === 'contact') {
-            // 联系方式至少填一项
-            var mobile = document.querySelector('input[name="mobile"]');
-            var weixin = document.querySelector('input[name="weixin"]');
-            var qq = document.querySelector('input[name="qq"]');
-            var hasContact = (mobile && mobile.value && mobile.value.replace(/\s/g, '')) ||
-                             (weixin && weixin.value && weixin.value.replace(/\s/g, '')) ||
-                             (qq && qq.value && qq.value.replace(/\s/g, ''));
-            if (!hasContact) {
-                alert(field.msg);
-                if (mobile) {
-                    scrollToElement(mobile);
-                    mobile.focus();
-                }
-                return false;
-            }
-        } else if (field.type === 'images') {
-            // 图片上传验证
-            if (window.imageUploader) {
-                var images = window.imageUploader.files;
-                if (!images || images.length === 0) {
-                    alert(field.msg);
-                    var imageSection = document.getElementById('imageUploadContainer');
-                    if (imageSection) {
-                        scrollToElement(imageSection);
-                    }
-                    return false;
-                }
-            } else {
-                alert('图片上传组件未初始化');
-                return false;
-            }
-        } else {
-            // 普通字段验证
-            if (field.id) {
-                el = document.getElementById(field.id);
-            } else {
-                el = document.querySelector('[name="' + field.name + '"]');
-            }
+    // 逐一校验普通字段
+    for (i = 0; i < fields.length; i++) {
+        field = fields[i];
+        el = document.querySelector('[name="' + field.name + '"]');
+        if (!el) continue;
 
-            if (!el) continue;
+        val = el.value ? el.value.replace(/\s/g, '') : '';
+        var empty = field.isSelect ? (!val || val === '0') : !val;
 
-            var val = el.value ? el.value.replace(/\s/g, '') : '';
-            
-            if (field.type === 'select') {
-                isEmpty = !val || val === '0';
-            } else {
-                isEmpty = !val;
-            }
-
-            if (isEmpty) {
-                alert(field.msg);
-                scrollToElement(el);
-                el.focus();
-                return false;
-            }
+        if (empty) {
+            alert(field.msg);
+            scrollToElement(el);
+            el.focus();
+            return false;
         }
+    }
+
+    // 联系方式：手机、微信、QQ 至少填写一项
+    var mobileEl = document.querySelector('input[name="mobile"]');
+    var weixinEl = document.querySelector('input[name="weixin"]');
+    var qqEl     = document.querySelector('input[name="qq"]');
+    var hasContact = (mobileEl && mobileEl.value.replace(/\s/g, '')) ||
+                     (weixinEl && weixinEl.value.replace(/\s/g, '')) ||
+                     (qqEl     && qqEl.value.replace(/\s/g, ''));
+    if (!hasContact) {
+        alert('手机号、微信、QQ 至少填写一项');
+        scrollToElement(mobileEl);
+        mobileEl && mobileEl.focus();
+        return false;
+    }
+
+    // 图片：至少上传一张
+    if (window.imageUploader) {
+        var imgs = window.imageUploader.files;
+        if (!imgs || imgs.length === 0) {
+            alert('请至少上传一张图片');
+            var imgContainer = document.getElementById('imageUploadContainer');
+            if (imgContainer) scrollToElement(imgContainer);
+            return false;
+        }
+    }
+
+    // 验证码
+    var yzmEl = document.getElementById('yzm');
+    if (!yzmEl || !yzmEl.value.replace(/\s/g, '')) {
+        alert('请输入验证码');
+        scrollToElement(yzmEl);
+        yzmEl && yzmEl.focus();
+        return false;
     }
 
     return true;
@@ -595,7 +581,7 @@ function submitForm(e) {
 
 // 页面加载完成后初始化
 (function() {
-    // 兼容 DOMContentLoaded
+    // 兼�� DOMContentLoaded
     function init() {
         // 绑定验证码图片点击刷新
         var captchaImg = document.getElementById('captchaImg');
