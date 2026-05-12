@@ -1,7 +1,7 @@
 <?php 
 include_once 'loaduser.php';
 include_once 'comm/alert_modal.php';
-$page_title = "高端修改";
+$pageTitle = "修改资料";
 
 $info_id = intval($_GET['id'] ?? 0);
 if ($info_id <= 0) {
@@ -69,7 +69,10 @@ if ($citypid == 0) {
                 </div>
                 
                 <div class="form-item">
-                    <label class="form-label required">所在城市</label>
+                    <label class="form-label required"> <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>所在城市</label>
                     <select name="city" id="city" class="form-select">
                         <option value="">请先选择省份</option>
                     </select>
@@ -303,7 +306,6 @@ if ($citypid == 0) {
         
     </div>
 
-    <?php include 'comm/footer.php'; ?>
 
 
     <script>
