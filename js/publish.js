@@ -2,6 +2,24 @@
  * 发布页面表单验证和提交
  */
 
+// 显示遮罩层
+function showLoadingOverlay(text) {
+    var overlay = document.getElementById('loadingOverlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'loadingOverlay';
+        overlay.className = 'loading-overlay';
+        overlay.innerHTML = '<div class="loading-spinner"></div><div class="loading-text">' + (text || '数据正在上传中，请稍等片刻...') + '</div>';
+        document.body.appendChild(overlay);
+    } else {
+        var textEl = overlay.getElementsByClassName('loading-text')[0];
+        if (textEl) {
+            textEl.innerHTML = text || '数据正在上传中，请稍等片刻...';
+        }
+        overlay.style.display = 'flex';
+    }
+}
+
 function showFieldError(fieldName, errorMessage) {
   let field = document.getElementById(fieldName)
 
@@ -66,7 +84,7 @@ function validateForm() {
     { name: "laiyuan",  isSelect: true,  msg: "请选择信息来源" },
     { name: "pj",       isSelect: true,  msg: "请选择综合评价" },
     { name: "content",  isSelect: false, msg: "请填写详细内容" },
-    { name: "uname",    isSelect: false, msg: "请输入联系人姓名" },
+    { name: "uname",    isSelect: false, msg: "请输入联系人" },
     { name: "address",  isSelect: false, msg: "请输入详细地址" },
   ]
 
@@ -202,7 +220,8 @@ async function submitForm(event) {
     hideLoadingLayer()
 
     if (result.code === 200) {
-      showAlert("发布成功！", "发布成功", 3000, "user.php")
+      alert("发布成功");
+      window.location.href='user.html';
     } else {
       // 后端返回失败后刷新验证码（此时 Session 更新不影响本次请求）
       refreshCaptcha()
