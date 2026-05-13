@@ -321,10 +321,14 @@ function validateForm() {
   return true;
 }
 
-// 隐藏加载层（关闭 showLoadingOverlay 创建的遮罩）
+// 显示 / 隐藏加载层
+function showLoadingLayer() {
+  var layer = document.getElementById('submitLoadingLayer');
+  if (layer) layer.style.display = 'flex';
+}
 function hideLoadingLayer() {
-  var overlay = document.getElementById('loadingOverlay');
-  if (overlay) overlay.style.display = 'none';
+  var layer = document.getElementById('submitLoadingLayer');
+  if (layer) layer.style.display = 'none';
 }
 
 // 表单提交处理
@@ -335,9 +339,10 @@ function handleFormSubmit(e) {
     return false;
   }
 
-  // 验证通过：调用统一加载层，不可手动关闭
-  // 不在此刷新验证码，refreshCaptcha() 会让后端重新生成 Session 值导致校验失败
-  showLoadingOverlay('数据正在飞速上传中，请稍等...');
+  // 验证通过：显示加载层，不可手动关闭
+  // 注意：此处不刷新验证码，refreshCaptcha() 会让后端重新生成 Session 值导致校验失败
+  // 验证码在后端返回结果后再刷新
+  showLoadingLayer();
 
   // 提交表单数据到后端
   function submitFormData() {
