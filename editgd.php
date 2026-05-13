@@ -9,37 +9,85 @@ if ($info_id <= 0) {
     exit;
 }
 
-$info = db3('gdb')->where(['id' => $info_id, 'uid' => $user_id])->find();
+$info = db3('infob')->where(['id' => $info_id, 'uid' => $user_id])->find();
 if (!$info) {
     echo '<script>alert("信息不存在或无权编辑");history.back();</script>';
     exit;
 }
 
-$images = !empty($info['bdpics']) ? explode('|', $info['bdpics']) : [];
-$videos = !empty($info['bdvideos']) ? explode('|', $info['bdvideos']) : [];
+$images = !empty($info['pics']) ? explode('|', $info['pics']) : [];
+$videos = !empty($info['videos']) ? explode('|', $info['videos']) : [];
 
 
-$citypid = db('areab')->where('id', $info['cityid'])->value('pid');
+$citypid = db('areab')->where('id', $info['city'])->value('pid');
+
+
 if ($citypid == 0) {
-    $citypid = $info['cityid'];
+    $citypid = $info['city'];
 }
 
+$provinceArr = db('areab')->where(['pid' => 0])->field('id, fullname')->select();
 ?>
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title><?php echo $page_title; ?></title>
+<title><?php echo $pageTitle; ?></title>
 <link rel="stylesheet" href="/css/imgvideo.css?t=<?php echo time(); ?>">
 <link rel="stylesheet" href="/css/fb.css?t=<?php echo time(); ?>">
+<link rel="stylesheet" href="/css/comm.css?t=<?php echo time(); ?>">
+<style>
+    /* 全屏遮罩层样式 */
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 99999;
+    }
+    .loading-overlay .loading-spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid rgba(255, 255, 255, 0.3);
+        border-top-color: #ff5e7b;
+        border-radius: 50%;
+        -webkit-animation: spin 1s linear infinite;
+        animation: spin 1s linear infinite;
+        margin-bottom: 15px;
+    }
+    .loading-overlay .loading-text {
+        color: #fff;
+        font-size: 16px;
+        text-align: center;
+        padding: 0 20px;
+    }
+    @-webkit-keyframes spin {
+        0% { -webkit-transform: rotate(0deg); transform: rotate(0deg); }
+        100% { -webkit-transform: rotate(360deg); transform: rotate(360deg); }
+    }
+    @keyframes spin {
+        0% { -webkit-transform: rotate(0deg); transform: rotate(0deg); }
+        100% { -webkit-transform: rotate(360deg); transform: rotate(360deg); }
+    }
+    </style>
 </head>
 <body>
     <?php include 'comm/header.php'; ?>
 
     <div class="publish-container">
-        <!-- 页面标题 -->
-      
+       
+  <input type="hidden" id="provincein" value="<?php echo $info['citypid']; ?>">
+  <input type="hidden" id="cityin" value="<?php echo $info['city']; ?>">
+  <input type="hidden" id="districtin" value="<?php echo $info['cityid']; ?>">
         <form id="publishForm">
             <!-- 基本信息部分 -->
             <div class="form-section">
@@ -50,36 +98,36 @@ if ($citypid == 0) {
                     </svg>
                 </h3>
                 
+                <div class="form-item">
+                    <label class="form-label required">
+                        信息标题
+                    </label>
+                    <input type="text" name="title" class="form-input" placeholder="请输入吸引人的标题" value="<?php echo htmlspecialchars($info['title']); ?>">
+                    <div class="form-error" data-field="title">请输入信息标题</div>
+                </div>
                 
                 <div class="form-item">
                     <label class="form-label required">
-                        <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                        </svg>
                         所属地区
                     </label>
                     <select name="province" id="province" class="form-select">
                         <option value="">请选择省份</option>
                         <?php foreach ($provinceArr as $k => $v) { ?>
-                           <option value="<?php echo $v['id']; ?>"><?php echo $v['fullname']; ?></option>
+                           <option value="<?php echo $v['id']; ?>" <?php echo $citypid == $v['id'] ? 'selected' : ''; ?>><?php echo $v['fullname']; ?></option>
                         <?php } ?>
                     </select>
                     <div class="form-error" data-field="province">请选择省份</div>
                 </div>
                 
                 <div class="form-item">
-                    <label class="form-label required"> <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                        </svg>所在城市</label>
+                    <label class="form-label required">所在城市</label>
                     <select name="city" id="city" class="form-select">
                         <option value="">请先选择省份</option>
                     </select>
                     <div class="form-error" data-field="city">请选择城市</div>
                 </div>
                 
-                <div class="form-item" style="display:none;">
+                <div class="form-item">
                     <label class="form-label required">所在区县</label>
                     <select name="district" id="district" class="form-select">
                         <option value="">请先选择城市</option>
@@ -87,99 +135,113 @@ if ($citypid == 0) {
                     <div class="form-error" data-field="district">请选择区县</div>
                 </div>
                 
+                <div class="form-item">
+                    <label class="form-label required">
+                        发布类别
+                    </label>
+                    <select name="typeid" class="form-select">
+                        <option value="">请选择分类</option>
+                        <?php foreach ($typeArr as $k => $v) { ?>
+                        <option value="<?php echo $k;?>" <?php echo $info['typeid'] == $k ? 'selected' : ''; ?>><?php echo $v;?></option>
+                        <?php } ?>
+                    </select>
+                    <div class="form-error" data-field="typeid">请选择发布类别</div>
+                </div>
+                
+                <div class="form-item">
+                    <label class="form-label required">
+                        信息来源
+                    </label>
+                    <select name="laiyuan" class="form-select">
+                        <option value="">请选择来源</option>
+                        <option value="自己开发" <?php echo $info['laiyuan'] == '自己开发' ? 'selected' : ''; ?>>自己开发</option>
+                        <option value="网上看到" <?php echo $info['laiyuan'] == '网上看到' ? 'selected' : ''; ?>>网上看到</option>
+                        <option value="朋友分享" <?php echo $info['laiyuan'] == '朋友分享' ? 'selected' : ''; ?>>朋友分享</option>
+                        <option value="其它论坛" <?php echo $info['laiyuan'] == '其它论坛' ? 'selected' : ''; ?>>其它论坛</option>
+                    </select>
+                    <div class="form-error" data-field="laiyuan">请选择信息来源</div>
+                </div>
+                
+                <div class="form-item">
+                    <label class="form-label required">
+                        综合评价
+                    </label>
+                    <select name="pj" class="form-select">
+                        <option value="">请选择评价</option>
+                        <option value="1" <?php echo $info['pj'] == '1' ? 'selected' : ''; ?>>★★★★★ 优秀</option>
+                        <option value="2" <?php echo $info['pj'] == '2' ? 'selected' : ''; ?>>★★★★☆ 良好</option>
+                        <option value="3" <?php echo $info['pj'] == '3' ? 'selected' : ''; ?>>★★★☆☆ 一般</option>
+                        <option value="4" <?php echo $info['pj'] == '4' ? 'selected' : ''; ?>>★★☆☆☆ 较差</option>
+                        <option value="5" <?php echo $info['pj'] == '5' ? 'selected' : ''; ?>>★☆☆☆☆ 很差</option>
+                    </select>
+                    <div class="form-error" data-field="pj">请选择综合评价</div>
+                </div>
+            </div>
 
+            <!-- 详细信息部分 -->
+            <div class="form-section">
+                <h3 class="section-title">
+                    详细信息
+                    <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                    </svg>
+                </h3>
+                
                 <div class="form-item">
                     <label class="form-label">
-                        <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                        </svg>
+                        场所人数
+                    </label>
+                    <select name="nums" class="form-select">
+                        <option value="">请选择场地人数</option>
+                        <option value="个人兼职" <?php echo $info['nums'] == '个人兼职' ? 'selected' : ''; ?>>个人兼职</option>
+                        <option value="2-5人" <?php echo $info['nums'] == '2-5人' ? 'selected' : ''; ?>>2-5人</option>
+                        <option value="5-10人" <?php echo $info['nums'] == '5-10人' ? 'selected' : ''; ?>>5-10人</option>
+                        <option value="10-20人" <?php echo $info['nums'] == '10-20人' ? 'selected' : ''; ?>>10-20人</option>
+                        <option value="20-50人" <?php echo $info['nums'] == '20-50人' ? 'selected' : ''; ?>>20-50人</option>
+                        <option value="50人以上" <?php echo $info['nums'] == '50人以上' ? 'selected' : ''; ?>>50人以上</option>
+                        <option value="未知" <?php echo $info['nums'] == '未知' ? 'selected' : ''; ?>>未知</option>
+                    </select>
+                </div>
+                
+                <div class="form-item">
+                    <label class="form-label">
                         年龄大小
                     </label>
                     <select name="age" class="form-select">
-                        <option value="0">请选择年龄大小</option>
-                        <?php for($i = 18; $i <= 35; $i++): ?>
-                        <option value="<?php echo $i; ?>"><?php echo $i; ?>岁</option>
-                        <?php endfor; ?>
+                        <option value="">请选择年龄大小</option>
+                        <option value="18-20岁" <?php echo $info['age'] == '18-20岁' ? 'selected' : ''; ?>>18-20岁</option>
+                        <option value="21-25岁" <?php echo $info['age'] == '21-25岁' ? 'selected' : ''; ?>>21-25岁</option>
+                        <option value="26-30岁" <?php echo $info['age'] == '26-30岁' ? 'selected' : ''; ?>>26-30岁</option>
+                        <option value="31-35岁" <?php echo $info['age'] == '31-35岁' ? 'selected' : ''; ?>>31-35岁</option>
+                        <option value="36-40岁" <?php echo $info['age'] == '36-40岁' ? 'selected' : ''; ?>>36-40岁</option>
+                        <option value="41-50岁" <?php echo $info['age'] == '41-50岁' ? 'selected' : ''; ?>>41-50岁</option>
+                        <option value="50岁以上" <?php echo $info['age'] == '50岁以上' ? 'selected' : ''; ?>>50岁以上</option>
+                        <option value="未知" <?php echo $info['age'] == '未知' ? 'selected' : ''; ?>>未知</option>
                     </select>
-                    <div class="form-error" data-field="age">请选择年龄</div>
                 </div>
-
+                
                 <div class="form-item">
                     <label class="form-label">
-                        <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                        </svg>
-                        身高
+                        外貌形象
                     </label>
-                    <select name="sg" class="form-select">
-                        <option value="0">请选择身高</option>
-                        <?php for($i = 155; $i <= 180; $i++): ?>
-                        <option value="<?php echo $i; ?>"><?php echo $i; ?>cm</option>
-                        <?php endfor; ?>
-                    </select>
-                    <div class="form-error" data-field="sg">请选择身高</div>
+                    <input type="text" name="wmtj" class="form-input" placeholder="请描述外貌形象" value="<?php echo htmlspecialchars($info['wmtj']); ?>">
                 </div>
-
+                
                 <div class="form-item">
                     <label class="form-label">
-                        <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                        </svg>
-                        体重
+                        服务价格
                     </label>
-                    <select name="tz" class="form-select">
-                        <option value="0">请选择体重</option>
-                        <?php for($i = 35; $i <= 70; $i++): ?>
-                        <option value="<?php echo $i; ?>"><?php echo $i; ?>Kg</option>
-                        <?php endfor; ?>
-                    </select>
-                    <div class="form-error" data-field="tz">请选择体重</div>
+                    <input type="text" name="price" class="form-input" placeholder="请输入服务价格" value="<?php echo htmlspecialchars($info['price']); ?>">
                 </div>
-                <div class="form-item">
-                    <label class="form-label">
-                        <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                        </svg>
-                        学历
-                    </label>
-                    <select name="xl" class="form-select">
-                        <option value="0">请选择学历</option>
-                        <?php foreach ($xlArr as $k => $v) {?>
-                               <option value="<?php echo $k; ?>"><?php echo $v; ?></option>
-                            <?php } ?>
-                    </select>
-                    <div class="form-error" data-field="xl">请选择学历</div>
-                </div>
-
-
-                <div class="form-item">
-                    <label class="form-label">
-                        <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                        </svg>
-                        职业
-                    </label>
-                    <select name="zy" class="form-select">
-                        <option value="0">请选择职业</option>
-                        <?php foreach ($zyArr as $key => $v): ?>
-                        <option value="<?php echo $key;?>"><?php echo $v;?></option>
-                        <?php endforeach; ?>
-                    </select>
-                    <div class="form-error" data-field="zy">请选择职业</div>
-                </div>
-
-
+                
                 <div class="form-item">
                     <label class="form-label required">
-                        <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
-                        </svg>
-                        约会价格
+                        详细内容
                     </label>
-                    <input type="text" name="price" class="form-input" placeholder="填写如：次2000 , 夜5000 , 一天/1万 , 私聊">
-                    <div class="form-error" data-field="price">请输入约会价格</div>
+                    <textarea name="content" class="form-textarea" placeholder="详细内容有助于用户更全面了解信息，请尽可能详细描述"><?php echo htmlspecialchars($info['content']); ?></textarea>
+                    <div class="form-error" data-field="content">请填写详细内容</div>
+                    <div class="form-hint">建议填写200字以上，描述越详细越能吸引用户</div>
                 </div>
-
             </div>
 
             
@@ -197,54 +259,55 @@ if ($citypid == 0) {
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
-                    <span>手机号、微信、QQ 至少填写一项</span>
+                    <span>手机号、微信、QQ、与你号 至少填写一项</span>
                 </div>
                 
                 <div class="form-item">
                     <label class="form-label required">
-                        <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                        </svg>
-                        昵称
+                        联系人
                     </label>
-                    <input type="text" name="uname" class="form-input" placeholder="请输入昵称">
-                    <div class="form-error" data-field="uname">请输入昵称</div>
+                    <input type="text" name="uname" class="form-input" placeholder="请输入联系人姓名" value="<?php echo htmlspecialchars($info['uname']); ?>">
+                    <div class="form-error" data-field="uname">请输入联系人姓名</div>
                 </div>
                 
                 <div class="form-item">
                     <label class="form-label">
-                        <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-                        </svg>
                         手机号码
                     </label>
-                    <input type="tel" name="mobile" class="form-input" placeholder="请输入手机号码">
+                    <input type="tel" name="mobile" class="form-input" placeholder="请输入手机号码" value="<?php echo htmlspecialchars($info['mobile']); ?>">
                 </div>
                 
                 <div class="form-item">
                     <label class="form-label">
-                        <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
-                        </svg>
                         微信号
                     </label>
-                    <input type="text" name="weixin" class="form-input" placeholder="请输入微信号">
+                    <input type="text" name="weixin" class="form-input" placeholder="请输入微信号" value="<?php echo htmlspecialchars($info['weixin']); ?>">
                 </div>
                 
                 <div class="form-item">
                     <label class="form-label">
-                        <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
-                        </svg>
                         QQ号码
                     </label>
-                    <input type="text" name="qq" class="form-input" placeholder="请输入QQ号码">
+                    <input type="text" name="qq" class="form-input" placeholder="请输入QQ号码" value="<?php echo htmlspecialchars($info['qq']); ?>">
                 </div>
-              
+                
+                <div class="form-item">
+                    <label class="form-label">
+                        与你号
+                    </label>
+                    <input type="text" name="yuni" class="form-input" placeholder="请输入与你号" value="<?php echo htmlspecialchars($info['yuli']); ?>">
+                </div>
                 
                 <div class="form-error" data-field="contact">请至少填写一项联系方式</div>
                 
-                
+                <div class="form-item">
+                    <label class="form-label required">
+                        详细地址
+                    </label>
+                    <input type="text" name="address" class="form-input" placeholder="请输入详细地址" value="<?php echo htmlspecialchars($info['address']); ?>">
+                    <div class="form-error" data-field="address">请输入详细地址</div>
+                    <div class="form-hint">详细地址有助于用户准确找到位置</div>
+                </div>
             </div>
 
 
@@ -307,370 +370,41 @@ if ($citypid == 0) {
     </div>
 
 
-
-    <script>
-        window.infoData = <?php echo json_encode($info); ?>;
-        window.existingImages = <?php echo json_encode($images); ?>;
-        window.existingVideos = <?php echo json_encode($videos); ?>;
-        window.provinceSelect  = <?php echo json_encode($citypid); ?>;
-        window.selectedCity    = <?php echo json_encode($info['cityid']); ?>;
-        window.selectedDistrict = 0;
-
-// 刷新验证码
-function refreshCaptcha() {
-  document.getElementById("captchaImg").src = "/lib/yzmcode.html?r=" + Math.random()
-}
-
-
-
-/**
- * 获取城市或区县列表
- * @param {number} pid 上级id
- * @param {number} type 2:获取城市 3:获取区县
- * @returns {Promise<Array>} 城市或区县列表
- */
-async function getRegionList(pid, type) {
-  try {
-    const formData = new FormData()
-    formData.append("pid", pid)
-    formData.append("type", type)
-
-    const response = await fetch("/opers/city/getcity.html", {
-      method: "POST",
-      body: formData,
-      credentials: "include",
-    })
-
-    const result = await response.json()
-
-    if (result.code === 200) {
-      return result.data || []
+<script>
+// 显示遮罩层
+function showLoadingOverlay(text) {
+    var overlay = document.getElementById('loadingOverlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'loadingOverlay';
+        overlay.className = 'loading-overlay';
+        overlay.innerHTML = '<div class="loading-spinner"></div><div class="loading-text">' + (text || '数据正在上传中，请稍等片刻...') + '</div>';
+        document.body.appendChild(overlay);
     } else {
-      console.error("获取地区列表失败:", result.msg)
-      return []
+        var textEl = overlay.getElementsByClassName('loading-text')[0];
+        if (textEl) {
+            textEl.innerHTML = text || '数据正在上传中，请稍等片刻...';
+        }
+        overlay.style.display = 'flex';
     }
-  } catch (error) {
-    console.error("获取地区列表错误:", error)
-    return []
-  }
 }
 
-/**
- * 更新城市下拉框
- * @param {number} provinceId 省份id
- */
-async function updateCityOptions(provinceId) {
-  const citySelect = document.getElementById("city")
-  const districtSelect = document.getElementById("district")
+window.infoData         = <?php echo json_encode($info); ?>;
+window.existingImages   = <?php echo json_encode($images); ?>;
+window.existingVideos   = <?php echo json_encode($videos); ?>;
+window.provinceSelect   = <?php echo json_encode($citypid); ?>;
+window.selectedCity     = <?php echo json_encode($info['city']); ?>;
+window.selectedDistrict = <?php echo json_encode($info['cityid'] ?? 0); ?>;
 
-  if (!provinceId) {
-    citySelect.innerHTML = '<option value="">请先选择省份</option>'
-    districtSelect.innerHTML = '<option value="">请先选择城市</option>'
-    return
-  }
+</script>
+<script src="/js/imgvideo.js?t=<?php echo time();?>"></script>
+<script src="/js/publish_edit.js?t=<?php echo time();?>"></script>
 
-  citySelect.innerHTML = '<option value="">加载中...</option>'
-  districtSelect.innerHTML = '<option value="">请先选择城市</option>'
-
-  const cities = await getRegionList(provinceId, 2)
-
-  citySelect.innerHTML = '<option value="">请选择城市</option>'
-  cities.forEach((city) => {
-    const option = document.createElement("option")
-    option.value = city.id
-    option.textContent = city.fullname || city.name
-    citySelect.appendChild(option)
-  })
-
-  if (window.selectedCity) {
-    citySelect.value = window.selectedCity
-    await updateDistrictOptions(window.selectedCity)
-  }
-}
-
-/**
- * 更新区县下拉框
- * @param {number} cityId 城市id
- */
-async function updateDistrictOptions(cityId) {
-  const districtSelect = document.getElementById("district")
-
-  if (!cityId) {
-    districtSelect.innerHTML = '<option value="">请先选择城市</option>'
-    return
-  }
-
-  districtSelect.innerHTML = '<option value="">加载中...</option>'
-
-  const districts = await getRegionList(cityId, 3)
-
-  districtSelect.innerHTML = '<option value="">请选择区县</option>'
-  districts.forEach((district) => {
-    const option = document.createElement("option")
-    option.value = district.id
-    option.textContent = district.fullname || district.name
-    districtSelect.appendChild(option)
-  })
-
-  if (window.selectedDistrict) {
-    districtSelect.value = window.selectedDistrict
-  }
-}
-
-// 初始化地区选择器
-async function initCitySelector() {
-  const provinceSelect = document.getElementById("province")
-  const citySelect = document.getElementById("city")
-  const districtSelect = document.getElementById("district")
-
-  const provinces = await getRegionList(0, 1)
-
-  if (provinces && provinces.length > 0) {
-    provinceSelect.innerHTML = '<option value="">请选择省份</option>'
-    provinces.forEach((province) => {
-      const option = document.createElement("option")
-      option.value = province.id
-      option.textContent = province.fullname || province.name
-      provinceSelect.appendChild(option)
-    })
-
-    if (window.provinceSelect) {
-      provinceSelect.value = window.provinceSelect
-      await updateCityOptions(window.provinceSelect)
-    }
-  }
-
-  provinceSelect.addEventListener("change", async function () {
-    const provinceId = this.value
-    window.provinceSelect = provinceId
-    window.selectedCity = ""
-    window.selectedDistrict = ""
-    await updateCityOptions(provinceId)
-  })
-
-  citySelect.addEventListener("change", async function () {
-    const cityId = this.value
-    window.selectedCity = cityId
-    window.selectedDistrict = ""
-    await updateDistrictOptions(cityId)
-  })
-
-  districtSelect.addEventListener("change", function () {
-    window.selectedDistrict = this.value
-  })
-}
-
-// 填充表单数据
-function fillFormData() {
-  if (!window.infoData) return
-
-  const data = window.infoData
-
-  // 文本类字段直接赋值
-  const textFields = ["price", "uname", "mobile", "weixin", "qq"]
-  textFields.forEach((field) => {
-    const el = document.querySelector(`[name="${field}"]`)
-    if (el && data[field] !== undefined && data[field] !== null) {
-      el.value = data[field]
-    }
-  })
-
-  // select 类字段：强制转字符串确保与 option value 匹配
-  const selectFields = ["age", "sg", "tz", "xl", "zy"]
-  selectFields.forEach((field) => {
-    const el = document.querySelector(`[name="${field}"]`)
-    if (el && data[field] !== undefined && data[field] !== null) {
-      el.value = String(data[field])
-    }
-  })
-
-  // 填充已上传的图片
-  if (window.existingImages && window.existingImages.length > 0 && window.imageUploader) {
-    window.existingImages.forEach((imagePath) => {
-      window.imageUploader.files.push({
-        file: null,
-        preview: imagePath,
-        type: "image",
-        uploaded: true,
-        path: imagePath,
-      })
-    })
-    window.imageUploader.render()
-  }
-
-  // 填充已上传的视频
-  if (window.existingVideos && window.existingVideos.length > 0 && window.videoUploader) {
-    window.existingVideos.forEach((videoPath) => {
-      window.videoUploader.files.push({
-        file: null,
-        preview: videoPath,
-        type: "video",
-        uploaded: true,
-        path: videoPath,
-      })
-    })
-    window.videoUploader.render()
-  }
-}
-
-// 表单验证（依次判断，遇到第一个未填/未选则 alert 提示并聚焦，立即返回）
-function validateForm() {
-  // 按顺序排列必填字段
-  const requiredFields = [
-    { name: "province", msg: "请选择省份",    type: "select" },
-    { name: "city",     msg: "请选择城市",    type: "select" },
-    { name: "age",      msg: "请选择年龄大小", type: "select0" },
-    { name: "sg",       msg: "请选择身高",    type: "select0" },
-    { name: "tz",       msg: "请选择体重",    type: "select0" },
-    { name: "xl",       msg: "请选择学历",    type: "select0" },
-    { name: "zy",       msg: "请选择职业",    type: "select0" },
-    { name: "price",    msg: "请输入约会价格", type: "text" },
-    { name: "uname",    msg: "请输入昵称",    type: "text" },
-  ]
-
-  for (const field of requiredFields) {
-    const el = document.querySelector(`[name="${field.name}"]`)
-    if (!el) continue
-
-    let empty = false
-    if (field.type === "select") {
-      empty = !el.value || el.value === ""
-    } else if (field.type === "select0") {
-      empty = !el.value || el.value === "0" || el.value === ""
-    } else {
-      empty = !el.value.trim()
-    }
-
-    if (empty) {
-      alert(field.msg)
-      el.focus()
-      return false
-    }
-  }
-
-  // 联系方式：手机、微信、QQ 至少填写一项
-  const mobile = document.querySelector('[name="mobile"]').value.trim()
-  const weixin = document.querySelector('[name="weixin"]').value.trim()
-  const qq     = document.querySelector('[name="qq"]').value.trim()
-
-  if (!mobile && !weixin && !qq) {
-    alert("手机号、微信、QQ 至少填写一项")
-    document.querySelector('[name="mobile"]').focus()
-    return false
-  }
-
-  // 验证码
-  const yzmEl = document.getElementById("yzm")
-  if (!yzmEl || !yzmEl.value.trim()) {
-    alert("请输入验证码")
-    yzmEl && yzmEl.focus()
-    return false
-  }
-
-  return true
-}
-
-// 显示 / 隐藏提交加载层
-function showLoadingLayer() {
-  const layer = document.getElementById("submitLoadingLayer")
-  if (layer) layer.style.display = "flex"
-}
-function hideLoadingLayer() {
-  const layer = document.getElementById("submitLoadingLayer")
-  if (layer) layer.style.display = "none"
-}
-
-// 表单提交处理
-async function handleFormSubmit(e) {
-  e.preventDefault()
-
-  if (!validateForm()) {
-    return
-  }
-
-  // 验证通过：显示加载层，不可手动关闭
-  // 此处不刷新验证码，refreshCaptcha() 会让后端重新生成 Session 值导致校验失败
-  showLoadingLayer()
-
-  try {
-    // 上传图片
-    if (window.imageUploader) {
-      const imageSuccess = await window.imageUploader.uploadAllFiles()
-      if (!imageSuccess) {
-        hideLoadingLayer()
-        showInfo("图片上传失败，请重试")
-        return
-      }
-    }
-
-    // 上传视频
-    if (window.videoUploader) {
-      const videoSuccess = await window.videoUploader.uploadAllFiles()
-      if (!videoSuccess) {
-        hideLoadingLayer()
-        showInfo("视频上传失败，请重试")
-        return
-      }
-    }
-
-    const images = window.imageUploader ? window.imageUploader.getFiles() : []
-    const videos = window.videoUploader ? window.videoUploader.getFiles() : []
-
-    const formData = new FormData(document.getElementById("publishForm"))
-    formData.append("id", window.infoData.id)
-    formData.append("pics", images.join("|"))
-    formData.append("videos", videos.join("|"))
-
-    const response = await fetch("/opers/forum/highend_edit.html", {
-      method: "POST",
-      body: formData,
-      credentials: "include",
-    })
-
-    const result = await response.json()
-
-    // 后端返回后关闭加载层
-    hideLoadingLayer()
-
-    if (result.code === 200) {
-      showSuccess("修改成功，请等待审核！", "修改成功", 100000, 'member_publish.html')
-    } else {
-      refreshCaptcha()
-      showInfo(result.msg || "修改失败")
-    }
-  } catch (error) {
-    hideLoadingLayer()
-    showInfo("网络错误，请重试")
-  }
-}
-
-document.addEventListener("DOMContentLoaded", async () => {
-  // 先初始化地区选择器（会异步加载省份列表并设置默认值）
-  await initCitySelector()
-
-  // 再填充其他表单数据
-  fillFormData()
-
-  // 最后绑定表单提交事件
-  const form = document.getElementById("publishForm")
-  if (form) {
-    form.addEventListener("submit", handleFormSubmit)
-  }
-})
-
-      
-    </script>
-    <script src="/js/imgvideo.js?t=<?php time();?>"></script>
-
-<!-- 提交加载层：半透明遮罩，不可手动关闭，后端返回后由 JS 移除 -->
-<div id="submitLoadingLayer" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.45);align-items:center;justify-content:center;flex-direction:column;gap:16px;">
-    <div style="width:48px;height:48px;border:5px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spinLoader 0.8s linear infinite;"></div>
-    <p style="color:#fff;font-size:15px;font-weight:500;letter-spacing:1px;margin:0;">数据正在飞速上传中，请稍等...</p>
-</div>
-<style>
-@keyframes spinLoader {
-    to { transform: rotate(360deg); }
-}
-</style>
+    <!-- 提交加载层：半透明遮罩，不可手动关闭，后端返回后由 JS 移除 -->
+    <div id="submitLoadingLayer" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.45);align-items:center;justify-content:center;flex-direction:column;gap:16px;">
+        <div style="width:48px;height:48px;border:5px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spinLoader 0.8s linear infinite;"></div>
+        <p style="color:#fff;font-size:15px;font-weight:500;letter-spacing:1px;margin:0;">数据正在飞速上传中，请稍等...</p>
+    </div>
+    <style>@keyframes spinLoader { to { transform: rotate(360deg); } }</style>
 </body>
 </html>
