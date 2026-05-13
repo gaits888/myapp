@@ -362,7 +362,7 @@ function refreshCaptcha() {
   document.getElementById("captchaImg").src = "/lib/yzmcode.html?r=" + Math.random()
 }
 
-// 显示全屏加载遮罩（供 publish_edit.js 调用）
+// 显示全屏加载遮罩
 function showLoadingOverlay(text) {
   var overlay = document.getElementById('loadingOverlay')
   if (!overlay) {
