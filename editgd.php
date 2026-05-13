@@ -629,14 +629,10 @@ function validateForm() {
   return true
 }
 
-// 显示 / 隐藏提交加载层
-function showLoadingLayer() {
-  const layer = document.getElementById("submitLoadingLayer")
-  if (layer) layer.style.display = "flex"
-}
+// 隐藏加载层（关闭 showLoadingOverlay 创建的遮罩）
 function hideLoadingLayer() {
-  const layer = document.getElementById("submitLoadingLayer")
-  if (layer) layer.style.display = "none"
+  var overlay = document.getElementById("loadingOverlay")
+  if (overlay) overlay.style.display = "none"
 }
 
 // 表单提交处理
@@ -647,9 +643,9 @@ async function handleFormSubmit(e) {
     return
   }
 
-  // 验证通过：显示加载层（不可手动关闭）
-  // 注意：不在此处刷新验证码，否则后端 Session 验证码会更新导致校验失败
-  showLoadingLayer()
+  // 验证通过：调用页面顶部已定义的 showLoadingOverlay，不可手动关闭
+  // 不在此刷新验证码，refreshCaptcha() 会让后端重新生成 Session 值导致校验失败
+  showLoadingOverlay("数据正在飞速上传中，请稍等...")
 
   try {
     // 上传图片
@@ -657,7 +653,7 @@ async function handleFormSubmit(e) {
       const imageSuccess = await window.imageUploader.uploadAllFiles()
       if (!imageSuccess) {
         hideLoadingLayer()
-        showInfo("图片上传失败，请重试")
+        alert("图片上传失败，请重试")
         return
       }
     }
@@ -667,7 +663,7 @@ async function handleFormSubmit(e) {
       const videoSuccess = await window.videoUploader.uploadAllFiles()
       if (!videoSuccess) {
         hideLoadingLayer()
-        showInfo("视频上传失败，请重试")
+        alert("视频上传失败，请重试")
         return
       }
     }
@@ -694,10 +690,9 @@ async function handleFormSubmit(e) {
     if (result.code === 200) {
       showSuccess("修改成功，请等待审核！", "修改成功", 100000, 'member_publish.html')
     } else {
+      // 失败后刷新验证码
+      refreshCaptcha()
       showInfo(result.msg || "修改失败")
-      if (result.msg && result.msg.includes("验证码")) {
-        refreshCaptcha()
-      }
     }
   } catch (error) {
     hideLoadingLayer()
@@ -722,17 +717,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       
 </script>
 <script src="/js/imgvideo.js?t=<?php time();?>"></script>
-
-<!-- 提交加载层：半透明遮罩，不可手动关闭，后端返回后由 JS 移除 -->
-<div id="submitLoadingLayer" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.45);align-items:center;justify-content:center;flex-direction:column;gap:16px;">
-    <div style="width:48px;height:48px;border:5px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spinLoader 0.8s linear infinite;"></div>
-    <p style="color:#fff;font-size:15px;font-weight:500;letter-spacing:1px;margin:0;">数据正在飞速上传中，请稍等...</p>
-</div>
-<style>
-@keyframes spinLoader {
-    to { transform: rotate(360deg); }
-}
-</style>
 
 <?php
 include_once 'comm/alert_modal.php';
