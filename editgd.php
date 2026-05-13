@@ -400,11 +400,5 @@ window.selectedDistrict = <?php echo json_encode($info['cityid'] ?? 0); ?>;
 <script src="/js/imgvideo.js?t=<?php echo time();?>"></script>
 <script src="/js/publish_edit.js?t=<?php echo time();?>"></script>
 
-    <!-- 提交加载层：半透明遮罩，不可手动关闭，后端返回后由 JS 移除 -->
-    <div id="submitLoadingLayer" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.45);align-items:center;justify-content:center;flex-direction:column;gap:16px;">
-        <div style="width:48px;height:48px;border:5px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spinLoader 0.8s linear infinite;"></div>
-        <p style="color:#fff;font-size:15px;font-weight:500;letter-spacing:1px;margin:0;">数据正在飞速上传中，请稍等...</p>
-    </div>
-    <style>@keyframes spinLoader { to { transform: rotate(360deg); } }</style>
 </body>
 </html>
