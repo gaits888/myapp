@@ -1,6 +1,5 @@
 <?php 
 include_once 'loaduser.php';
-include_once 'comm/alert_modal.php';
 $pageTitle = "修改资料";
 
 $info_id = intval($_GET['id'] ?? 0);
@@ -18,9 +17,7 @@ if (!$info) {
 $images = !empty($info['pics']) ? explode('|', $info['pics']) : [];
 $videos = !empty($info['videos']) ? explode('|', $info['videos']) : [];
 
-
 $citypid = db('areab')->where('id', $info['city'])->value('pid');
-
 
 if ($citypid == 0) {
     $citypid = $info['city'];
@@ -37,6 +34,48 @@ $provinceArr = db('areab')->where(['pid' => 0])->field('id, fullname')->select()
 <link rel="stylesheet" href="/css/imgvideo.css?t=<?php echo time(); ?>">
 <link rel="stylesheet" href="/css/fb.css?t=<?php echo time(); ?>">
 <link rel="stylesheet" href="/css/comm.css?t=<?php echo time(); ?>">
+<style>
+    /* 全屏遮罩层样式 */
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 99999;
+    }
+    .loading-overlay .loading-spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid rgba(255, 255, 255, 0.3);
+        border-top-color: #ff5e7b;
+        border-radius: 50%;
+        -webkit-animation: spin 1s linear infinite;
+        animation: spin 1s linear infinite;
+        margin-bottom: 15px;
+    }
+    .loading-overlay .loading-text {
+        color: #fff;
+        font-size: 16px;
+        text-align: center;
+        padding: 0 20px;
+    }
+    @-webkit-keyframes spin {
+        0% { -webkit-transform: rotate(0deg); transform: rotate(0deg); }
+        100% { -webkit-transform: rotate(360deg); transform: rotate(360deg); }
+    }
+    @keyframes spin {
+        0% { -webkit-transform: rotate(0deg); transform: rotate(0deg); }
+        100% { -webkit-transform: rotate(360deg); transform: rotate(360deg); }
+    }
+    </style>
 </head>
 <body>
     <?php include 'comm/header.php'; ?>
@@ -328,22 +367,37 @@ $provinceArr = db('areab')->where(['pid' => 0])->field('id, fullname')->select()
     </div>
 
 
-    <script>
-        window.infoData         = <?php echo json_encode($info); ?>;
-        window.existingImages   = <?php echo json_encode($images); ?>;
-        window.existingVideos   = <?php echo json_encode($videos); ?>;
-        window.provinceSelect   = <?php echo json_encode($citypid); ?>;
-        window.selectedCity     = <?php echo json_encode($info['city']); ?>;
-        window.selectedDistrict = <?php echo json_encode($info['cityid'] ?? 0); ?>;
-    </script>
-    <script src="/js/imgvideo.js?t=<?php echo time();?>"></script>
-    <script src="/js/publish_edit.js?t=<?php echo time();?>"></script>
+<script>
+// 显示遮罩层
+function showLoadingOverlay(text) {
+    var overlay = document.getElementById('loadingOverlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'loadingOverlay';
+        overlay.className = 'loading-overlay';
+        overlay.innerHTML = '<div class="loading-spinner"></div><div class="loading-text">' + (text || '数据正在上传中，请稍等片刻...') + '</div>';
+        document.body.appendChild(overlay);
+    } else {
+        var textEl = overlay.getElementsByClassName('loading-text')[0];
+        if (textEl) {
+            textEl.innerHTML = text || '数据正在上传中，请稍等片刻...';
+        }
+        overlay.style.display = 'flex';
+    }
+}
 
-    <!-- 提交加载层：半透明遮罩，不可手动关闭，后端返回后由 JS 移除 -->
-    <div id="submitLoadingLayer" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.45);align-items:center;justify-content:center;flex-direction:column;gap:16px;">
-        <div style="width:48px;height:48px;border:5px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spinLoader 0.8s linear infinite;"></div>
-        <p style="color:#fff;font-size:15px;font-weight:500;letter-spacing:1px;margin:0;">数据正在飞速上传中，请稍等...</p>
-    </div>
-    <style>@keyframes spinLoader { to { transform: rotate(360deg); } }</style>
+window.infoData         = <?php echo json_encode($info); ?>;
+window.existingImages   = <?php echo json_encode($images); ?>;
+window.existingVideos   = <?php echo json_encode($videos); ?>;
+window.provinceSelect   = <?php echo json_encode($citypid); ?>;
+window.selectedCity     = <?php echo json_encode($info['city']); ?>;
+window.selectedDistrict = <?php echo json_encode($info['cityid'] ?? 0); ?>;
+
+</script>
+<script src="/js/imgvideo.js?t=<?php echo time();?>"></script>
+<script src="/js/publish_edit.js?t=<?php echo time();?>"></script>
+<?php
+include_once 'comm/alert_modal.php';
+?>
 </body>
 </html>
