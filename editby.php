@@ -1,6 +1,5 @@
 <?php 
 include_once 'loaduser.php';
-include_once 'comm/alert_modal.php';
 $pageTitle = "修改资料";
 
 $info_id = intval($_GET['id'] ?? 0);
@@ -32,6 +31,48 @@ $provinceArr = db('areab')->where(['pid' => 0])->field('id, name')->select();
 <title><?php echo $page_title; ?></title>
 <link rel="stylesheet" href="/css/imgvideo.css?t=<?php echo time();?>">
 <link rel="stylesheet" href="/css/fb.css?t=<?php echo time();?>">
+<style>
+    /* 全屏遮罩层样式 */
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 99999;
+    }
+    .loading-overlay .loading-spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid rgba(255, 255, 255, 0.3);
+        border-top-color: #ff5e7b;
+        border-radius: 50%;
+        -webkit-animation: spin 1s linear infinite;
+        animation: spin 1s linear infinite;
+        margin-bottom: 15px;
+    }
+    .loading-overlay .loading-text {
+        color: #fff;
+        font-size: 16px;
+        text-align: center;
+        padding: 0 20px;
+    }
+    @-webkit-keyframes spin {
+        0% { -webkit-transform: rotate(0deg); transform: rotate(0deg); }
+        100% { -webkit-transform: rotate(360deg); transform: rotate(360deg); }
+    }
+    @keyframes spin {
+        0% { -webkit-transform: rotate(0deg); transform: rotate(0deg); }
+        100% { -webkit-transform: rotate(360deg); transform: rotate(360deg); }
+    }
+    </style>
 </head>
 <body>
     <?php include 'comm/header.php'; ?>
@@ -327,15 +368,33 @@ $provinceArr = db('areab')->where(['pid' => 0])->field('id, name')->select();
 
 
 
-    <script src="/js/imgvideo.js?t=<?php time();?>"></script>
-    
+<script src="/js/imgvideo.js?t=<?php time();?>"></script>
 <script>
-        window.infoData = <?php echo json_encode($info); ?>;
-        window.existingImages = <?php echo json_encode($images); ?>;
-        window.existingVideos = <?php echo json_encode($videos); ?>;
-        window.provinceSelect = <?php echo json_encode($citypid); ?>;
-        window.selectedCity    = <?php echo json_encode(isset($info['cityid']) ? $info['cityid'] : ''); ?>;
-        window.selectedDistrict = 0;
+
+// 显示遮罩层
+function showLoadingOverlay(text) {
+    var overlay = document.getElementById('loadingOverlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'loadingOverlay';
+        overlay.className = 'loading-overlay';
+        overlay.innerHTML = '<div class="loading-spinner"></div><div class="loading-text">' + (text || '数据正在上传中，请稍等片刻...') + '</div>';
+        document.body.appendChild(overlay);
+    } else {
+        var textEl = overlay.getElementsByClassName('loading-text')[0];
+        if (textEl) {
+            textEl.innerHTML = text || '数据正在上传中，请稍等片刻...';
+        }
+        overlay.style.display = 'flex';
+    }
+}
+
+window.infoData = <?php echo json_encode($info); ?>;
+window.existingImages = <?php echo json_encode($images); ?>;
+window.existingVideos = <?php echo json_encode($videos); ?>;
+window.provinceSelect = <?php echo json_encode($citypid); ?>;
+window.selectedCity    = <?php echo json_encode(isset($info['cityid']) ? $info['cityid'] : ''); ?>;
+window.selectedDistrict = 0;
         
 
 // 刷新验证码
@@ -532,8 +591,8 @@ async function handleFormSubmit(e) {
     return
   }
 
-  // 验证通过：显示加载层，不可手动关闭
-  // 此处不刷新验证码，refreshCaptcha() 会让后端重新生成 Session 值导致校验失败
+  // 验证通过：刷新验证码，显示加载层（此后不可手动关闭）
+  refreshCaptcha()
   showLoadingLayer()
 
   try {
@@ -579,8 +638,10 @@ async function handleFormSubmit(e) {
     if (result.code === 200) {
       showSuccess("修改成功，请等待审核！", "修改成功", 100000, 'member_publish.html')
     } else {
-      refreshCaptcha()
       showInfo(result.msg || "修改失败")
+      if (result.msg && result.msg.includes("验证码")) {
+        refreshCaptcha()
+      }
     }
   } catch (error) {
     hideLoadingLayer()
@@ -603,7 +664,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 })
 
         
-    </script>
+</script>
 
 <!-- 提交加载层：透明遮罩，不可手动关闭，后端返回后由 JS 移除 -->
 <div id="submitLoadingLayer" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.45);align-items:center;justify-content:center;flex-direction:column;gap:16px;">
@@ -615,5 +676,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     to { transform: rotate(360deg); }
 }
 </style>
+
+<?php
+include_once 'comm/alert_modal.php';
+?>
+
 </body>
 </html>
