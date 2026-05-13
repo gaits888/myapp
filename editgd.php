@@ -362,6 +362,24 @@ function refreshCaptcha() {
   document.getElementById("captchaImg").src = "/lib/yzmcode.html?r=" + Math.random()
 }
 
+// 显示全屏加载遮罩（供 publish_edit.js 调用）
+function showLoadingOverlay(text) {
+  var overlay = document.getElementById('loadingOverlay')
+  if (!overlay) {
+    overlay = document.createElement('div')
+    overlay.id = 'loadingOverlay'
+    overlay.className = 'loading-overlay'
+    overlay.innerHTML =
+      '<div class="loading-spinner"></div>' +
+      '<div class="loading-text">' + (text || '加载中...') + '</div>'
+    document.body.appendChild(overlay)
+  } else {
+    var textEl = overlay.querySelector('.loading-text')
+    if (textEl) textEl.textContent = text || '加载中...'
+    overlay.style.display = 'flex'
+  }
+}
+
 
 
 /**
