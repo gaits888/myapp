@@ -280,39 +280,31 @@ $verificationStatus = $Statusnum[$sh];
 
           const uploadResult = await uploadResponse.json();
           
-          // 根据上传接口返回结果提示
-          if (uploadResult.code !== 200) {
-            // 上传失败，显示具体错误信息
-            showAlert('视频上传失败：' + (uploadResult.msg || '未知错误'));
-            submitBtn.disabled = false;
-            submitBtn.textContent = '提交认证';
-            return;
-          }
+          if (uploadResult.code === 200) {
+            // 第二步：提交认证
+            submitBtn.textContent = '提交认证中...';
+            
+            const submitResponse = await fetch('/opers/member/videos.html', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+              },
+              body: `filename=${encodeURIComponent(uploadResult.data.url)}`
+            });
 
-          // 上传成功，继续提交认证
-          submitBtn.textContent = '提交认证中...';
-          
-          const submitResponse = await fetch('uploads_api.php', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: `filename=${encodeURIComponent(uploadResult.data.url)}`
-          });
-
-          const submitResult = await submitResponse.json();
-          
-          if (submitResult.code === 200) {
-            showSuccess(submitResult.msg || '认证视频上传成功！请等待审核', '上传成功', 10000, 'user.html');
+            const submitResult = await submitResponse.json();
+            if (submitResult.code === 200) {
+              showSuccess(submitResult.msg || '认证视频提交成功！请等待审核', '提交成功', 10000, 'user.html');
+            } else {
+              showInfo(submitResult.msg || '提交失败');
+              submitBtn.disabled = false;
+              submitBtn.textContent = '提交认证';
+            }
           } else {
-            // 提交认证失败
-            showAlert('提交认证失败：' + (submitResult.msg || '未知错误'));
-            submitBtn.disabled = false;
-            submitBtn.textContent = '提交认证';
+            throw new Error(uploadResult.msg || '视频上传失败');
           }
         } catch (error) {
-          // 网络错误或其他异常
-          showAlert('网络错误：' + (error.message || '请检查网络连接后重试'));
+          showAlert(error.message);
           submitBtn.disabled = false;
           submitBtn.textContent = '提交认证';
         }
