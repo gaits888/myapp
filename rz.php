@@ -284,7 +284,7 @@ $verificationStatus = $Statusnum[$sh];
             // 第二步：提交认证
             submitBtn.textContent = '提交认证中...';
             
-            const submitResponse = await fetch('/opers/member/videos.html', {
+            const submitResponse = await fetch('uploads_api.php', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/x-www-form-urlencoded'
