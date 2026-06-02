@@ -286,8 +286,18 @@ $verificationStatus = $Statusnum[$sh];
             return;
           }
 
-          const uploadResult = await uploadResponse.json();
-          console.log('[v0] 上传接口返回:', uploadResult);
+          // 先获取响应文本，再尝试解析 JSON
+          const uploadText = await uploadResponse.text();
+          let uploadResult;
+          try {
+            uploadResult = JSON.parse(uploadText);
+          } catch (parseError) {
+            // JSON 解析失败，说明服务器返回了错误页面
+            showAlert('服务器返回了无效的响应，请稍后重试');
+            submitBtn.disabled = false;
+            submitBtn.textContent = '提交认证';
+            return;
+          }
           
           // 根据上传接口返回结果处理
           if (uploadResult.code !== 200) {
@@ -315,8 +325,17 @@ $verificationStatus = $Statusnum[$sh];
             return;
           }
 
-          const submitResult = await submitResponse.json();
-          console.log('[v0] 认证接口返回:', submitResult);
+          // 同样先获取文本再解析
+          const submitText = await submitResponse.text();
+          let submitResult;
+          try {
+            submitResult = JSON.parse(submitText);
+          } catch (parseError) {
+            showAlert('认证服务返回了无效的响应，请稍后重试');
+            submitBtn.disabled = false;
+            submitBtn.textContent = '提交认证';
+            return;
+          }
           
           if (submitResult.code === 200) {
             showSuccess(submitResult.msg || '认证视频上传成功！请等待审核', '上传成功', 10000, 'user.html');
@@ -326,7 +345,6 @@ $verificationStatus = $Statusnum[$sh];
             submitBtn.textContent = '提交认证';
           }
         } catch (error) {
-          console.log('[v0] 请求异常:', error);
           showAlert('网络错误：' + (error.message || '请检查网络连接后重试'));
           submitBtn.disabled = false;
           submitBtn.textContent = '提交认证';
