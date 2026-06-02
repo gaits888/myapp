@@ -273,79 +273,39 @@ $verificationStatus = $Statusnum[$sh];
           formData.append('file', uploadedVideo);
           formData.append('type', 'video');
 
-          const uploadResponse = await fetch('/uploads_api.php', {
+          const uploadResponse = await fetch('/uploads_api.html', {
             method: 'POST',
             body: formData
           });
 
-          // 检查响应状态
-          if (!uploadResponse.ok) {
-            showAlert('视频上传失败：服务器错误 ' + uploadResponse.status);
-            submitBtn.disabled = false;
-            submitBtn.textContent = '提交认证';
-            return;
-          }
+          const uploadResult = await uploadResponse.json();
+          if (uploadResult.code === 200) {
+            // 第二步：提交认证
+            submitBtn.textContent = '提交认证中...';
+            
+            const submitResponse = await fetch('/opers/member/videos.html', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+              },
+              body: `filename=${encodeURIComponent(uploadResult.data.url)}`
+            });
 
-          // 先获取响应文本，再尝试解析 JSON
-          const uploadText = await uploadResponse.text();
-          let uploadResult;
-          try {
-            uploadResult = JSON.parse(uploadText);
-          } catch (parseError) {
-            // JSON 解析失败，说明服务器返回了错误页面
-            showAlert('服务器返回了无效的响应，请稍后重试');
-            submitBtn.disabled = false;
-            submitBtn.textContent = '提交认证';
-            return;
-          }
-          
-          // 根据上传接口返回结果处理
-          if (uploadResult.code !== 200) {
-            showAlert('视频上传失败：' + (uploadResult.msg || '未知错误'));
-            submitBtn.disabled = false;
-            submitBtn.textContent = '提交认证';
-            return;
-          }
-
-          // 上传成功，继续提交认证
-          submitBtn.textContent = '提交认证中...';
-          
-          const submitResponse = await fetch('/opers/member/videos.html', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: `filename=${encodeURIComponent(uploadResult.data.url)}`
-          });
-
-          if (!submitResponse.ok) {
-            showAlert('提交认证失败：服务器错误 ' + submitResponse.status);
-            submitBtn.disabled = false;
-            submitBtn.textContent = '提交认证';
-            return;
-          }
-
-          // 同样先获取文本再解析
-          const submitText = await submitResponse.text();
-          let submitResult;
-          try {
-            submitResult = JSON.parse(submitText);
-          } catch (parseError) {
-            showAlert('认证服务返回了无效的响应，请稍后重试');
-            submitBtn.disabled = false;
-            submitBtn.textContent = '提交认证';
-            return;
-          }
-          
-          if (submitResult.code === 200) {
-            showSuccess(submitResult.msg || '认证视频上传成功！请等待审核', '上传成功', 10000, 'user.html');
+            const submitResult = await submitResponse.json();
+            if (submitResult.code === 200) {
+              showSuccess(submitResult.msg || '认证视频提交成功！请等待审核', '提交成功', 10000, 'user.html');
+            } else {
+              showInfo(submitResult.msg || '提交失败');
+              submitBtn.disabled = false;
+              submitBtn.textContent = '提交认证';
+            }
           } else {
-            showAlert('提交认证失败：' + (submitResult.msg || '未知错误'));
+            showInfo(uploadResult.msg || '视频上传失败');
             submitBtn.disabled = false;
             submitBtn.textContent = '提交认证';
           }
         } catch (error) {
-          showAlert('网络错误：' + (error.message || '请检查网络连接后重试'));
+          showAlert(error.message);
           submitBtn.disabled = false;
           submitBtn.textContent = '提交认证';
         }
