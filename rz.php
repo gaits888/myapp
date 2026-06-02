@@ -273,7 +273,7 @@ $verificationStatus = $Statusnum[$sh];
           formData.append('file', uploadedVideo);
           formData.append('type', 'video');
 
-          const uploadResponse = await fetch('/uploads_api.html', {
+          const uploadResponse = await fetch('/uploads_api.php', {
             method: 'POST',
             body: formData
           });
