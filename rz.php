@@ -278,33 +278,56 @@ $verificationStatus = $Statusnum[$sh];
             body: formData
           });
 
-          const uploadResult = await uploadResponse.json();
-          
-          if (uploadResult.code === 200) {
-            // 第二步：提交认证
-            submitBtn.textContent = '提交认证中...';
-            
-            const submitResponse = await fetch('/opers/member/videos.html', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
-              },
-              body: `filename=${encodeURIComponent(uploadResult.data.url)}`
-            });
+          // 检查响应状态
+          if (!uploadResponse.ok) {
+            showAlert('视频上传失败：服务器错误 ' + uploadResponse.status);
+            submitBtn.disabled = false;
+            submitBtn.textContent = '提交认证';
+            return;
+          }
 
-            const submitResult = await submitResponse.json();
-            if (submitResult.code === 200) {
-              showSuccess(submitResult.msg || '认证视频提交成功！请等待审核', '提交成功', 10000, 'user.html');
-            } else {
-              showInfo(submitResult.msg || '提交失败');
-              submitBtn.disabled = false;
-              submitBtn.textContent = '提交认证';
-            }
+          const uploadResult = await uploadResponse.json();
+          console.log('[v0] 上传接口返回:', uploadResult);
+          
+          // 根据上传接口返回结果处理
+          if (uploadResult.code !== 200) {
+            showAlert('视频上传失败：' + (uploadResult.msg || '未知错误'));
+            submitBtn.disabled = false;
+            submitBtn.textContent = '提交认证';
+            return;
+          }
+
+          // 上传成功，继续提交认证
+          submitBtn.textContent = '提交认证中...';
+          
+          const submitResponse = await fetch('/opers/member/videos.html', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: `filename=${encodeURIComponent(uploadResult.data.url)}`
+          });
+
+          if (!submitResponse.ok) {
+            showAlert('提交认证失败：服务器错误 ' + submitResponse.status);
+            submitBtn.disabled = false;
+            submitBtn.textContent = '提交认证';
+            return;
+          }
+
+          const submitResult = await submitResponse.json();
+          console.log('[v0] 认证接口返回:', submitResult);
+          
+          if (submitResult.code === 200) {
+            showSuccess(submitResult.msg || '认证视频上传成功！请等待审核', '上传成功', 10000, 'user.html');
           } else {
-            throw new Error(uploadResult.msg || '视频上传失败');
+            showAlert('提交认证失败：' + (submitResult.msg || '未知错误'));
+            submitBtn.disabled = false;
+            submitBtn.textContent = '提交认证';
           }
         } catch (error) {
-          showAlert(error.message);
+          console.log('[v0] 请求异常:', error);
+          showAlert('网络错误：' + (error.message || '请检查网络连接后重试'));
           submitBtn.disabled = false;
           submitBtn.textContent = '提交认证';
         }
