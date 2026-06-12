@@ -39,16 +39,19 @@ body {
   position: sticky;
   top: 50px;
   z-index: 100;
-  margin: 10px;
+  margin: 10px 10px 0 10px;
   border-radius: 10px;
 }
 
 .main-category-tabs {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
   display: flex;
-  justify-content: center;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
+  -webkit-box-pack: justify;
+  -webkit-justify-content: space-between;
+  -ms-flex-pack: justify;
+  justify-content: space-between;
   padding: 10px;
   background: #f9f9f9;
   border-radius: 12px;
@@ -70,11 +73,14 @@ body {
   white-space: nowrap;
   position: relative;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  -webkit-box-flex: 1;
+  -webkit-flex: 1 1 0;
+  -ms-flex: 1 1 0px;
+  flex: 1 1 0;
   margin-right: 10px;
   text-align: center;
-  width: 25%;
   height: 35px;
-  line-height: 30px;
+  line-height: 31px;
 }
 
 .main-category-btn:last-child {
@@ -83,19 +89,22 @@ body {
 
 /* 发布容器 */
 .publish-container {
-  padding: 0 10px 10px 10px;
+  padding: 10px 10px 10px 10px;
   background: transparent;
 }
 
 /* 筛选标签样式 */
 .filter-tabs {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
   display: flex;
-  justify-content: flex-start;
+  -webkit-box-pack: justify;
+  -webkit-justify-content: space-between;
+  -ms-flex-pack: justify;
+  justify-content: space-between;
   padding: 10px;
   margin-bottom: 10px;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
   background: #fff;
   border-radius: 10px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
@@ -112,7 +121,10 @@ body {
 }
 
 .filter-tab {
-  width: 24%;
+  -webkit-box-flex: 1;
+  -webkit-flex: 1 1 0;
+  -ms-flex: 1 1 0px;
+  flex: 1 1 0;
   padding: 6px 10px;
   color: #666;
   font-size: 13px;
