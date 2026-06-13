@@ -76,11 +76,17 @@ $promotionLink = $share . '&fid='.$user_code;
 
         /* 导航按钮 */
         .nav-buttons {
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: -ms-flexbox;
             display: flex;
             margin-bottom: var(--spacing-md);
         }
 
         .nav-btn {
+            -webkit-box-flex: 1;
+            -webkit-flex: 1;
+            -ms-flex: 1;
             flex: 1;
             padding: var(--spacing-md);
             background: var(--bg-light);
@@ -91,10 +97,23 @@ $promotionLink = $share . '&fid='.$user_code;
             font-weight: var(--font-medium);
             cursor: pointer;
             transition: all var(--transition-base);
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: -ms-flexbox;
             display: flex;
+            -webkit-box-align: center;
+            -webkit-align-items: center;
+            -ms-flex-align: center;
             align-items: center;
+            -webkit-box-pack: center;
+            -webkit-justify-content: center;
+            -ms-flex-pack: center;
             justify-content: center;
-            gap: var(--spacing-sm);
+        }
+
+        /* 两个导航按钮之间用 margin 代替 gap，兼容低版本浏览器 */
+        .nav-btn:first-child {
+            margin-right: 10px;
         }
 
         .nav-btn:active {
@@ -105,6 +124,16 @@ $promotionLink = $share . '&fid='.$user_code;
         .nav-btn svg {
             width: 18px;
             height: 18px;
+            vertical-align: middle;
+        }
+
+        /* 用 margin 代替 gap 给图标与文字留间距 */
+        .nav-btn svg:first-child {
+            margin-right: 6px;
+        }
+
+        .nav-btn svg:last-child {
+            margin-left: 6px;
         }
 
         /* 保存按钮 */
@@ -119,10 +148,18 @@ $promotionLink = $share . '&fid='.$user_code;
             font-weight: var(--font-semibold);
             cursor: pointer;
             transition: all var(--transition-base);
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: -ms-flexbox;
             display: flex;
+            -webkit-box-align: center;
+            -webkit-align-items: center;
+            -ms-flex-align: center;
             align-items: center;
+            -webkit-box-pack: center;
+            -webkit-justify-content: center;
+            -ms-flex-pack: center;
             justify-content: center;
-            gap: var(--spacing-sm);
         }
 
         .save-btn:active {
@@ -133,6 +170,8 @@ $promotionLink = $share . '&fid='.$user_code;
         .save-btn svg {
             width: 20px;
             height: 20px;
+            vertical-align: middle;
+            margin-right: 6px;
         }
 
         /* 提示信息 */
@@ -326,7 +365,7 @@ $promotionLink = $share . '&fid='.$user_code;
         
         function loadImage() {
             const img = new Image();
-            img.crossOrigin = 'anonymous';
+            // 图片为同源资源，不设置 crossOrigin，避免低版本安卓画布污染/加载失败
             img.onload = function() {
                 // 使用9:16的竖图比例（手机拍摄图片比例）
                 const targetWidth = 800;
@@ -361,12 +400,14 @@ $promotionLink = $share . '&fid='.$user_code;
         function generateAndDrawQRCode() {
             // 创建临时div用于生成二维码
             const tempDiv = document.createElement('div');
-            tempDiv.style.display = 'none';
+            tempDiv.style.position = 'absolute';
+            tempDiv.style.left = '-9999px';
+            tempDiv.style.top = '0';
             document.body.appendChild(tempDiv);
-            
+
             try {
                 // 使用QRCode库生成二维码
-                const qr = new QRCode(tempDiv, {
+                new QRCode(tempDiv, {
                     text: promotionUrl,
                     width: 150,
                     height: 150,
@@ -374,27 +415,42 @@ $promotionLink = $share . '&fid='.$user_code;
                     colorLight: "#ffffff",
                     correctLevel: QRCode.CorrectLevel.H
                 });
-                
-                // 等待二维码生成完成
-                setTimeout(() => {
-                    const qrImg = tempDiv.querySelector('img');
-                    if (qrImg && qrImg.complete) {
+
+                // 低版本安卓上 QRCode 可能输出 <canvas> 而非 <img>，需要轮询兼容两种情况
+                var tries = 0;
+                var timer = setInterval(function() {
+                    tries++;
+                    var qrCanvas = tempDiv.querySelector('canvas');
+                    var qrImg = tempDiv.querySelector('img');
+
+                    if (qrCanvas) {
+                        // canvas 是同步绘制的，可以直接使用
+                        clearInterval(timer);
+                        drawQRCodeOnCanvas(qrCanvas);
+                        cleanup();
+                    } else if (qrImg && qrImg.complete && qrImg.naturalWidth > 0) {
+                        clearInterval(timer);
                         drawQRCodeOnCanvas(qrImg);
-                    } else if (qrImg) {
-                        qrImg.onload = function() {
-                            drawQRCodeOnCanvas(qrImg);
-                        };
-                    } else {
-                        console.error('[v0] 二维码图片生成失败');
+                        cleanup();
+                    } else if (tries >= 30) {
+                        // 超过3秒仍未生成，放弃
+                        clearInterval(timer);
+                        console.error('[v0] 二维码生成超时');
+                        cleanup();
                     }
-                    
-                    // 清理临时元素
-                    document.body.removeChild(tempDiv);
-                }, 300);
-                
+                }, 100);
+
+                function cleanup() {
+                    if (tempDiv.parentNode) {
+                        document.body.removeChild(tempDiv);
+                    }
+                }
+
             } catch (error) {
                 console.error('[v0] 二维码生成异常:', error);
-                document.body.removeChild(tempDiv);
+                if (tempDiv.parentNode) {
+                    document.body.removeChild(tempDiv);
+                }
             }
         }
         
@@ -469,26 +525,57 @@ $promotionLink = $share . '&fid='.$user_code;
             document.getElementById('totalPages').textContent = images.length;
         }
         
+        // 检测是否支持 a.download（低版本安卓浏览器通常不支持）
+        function supportsDownload() {
+            var a = document.createElement('a');
+            return typeof a.download !== 'undefined';
+        }
+
         // 保存图片
         function saveImage() {
             try {
-                // 将canvas转换为图片并下载
-                const link = document.createElement('a');
-                link.download = `推广海报_${currentIndex + 1}.png`;
-                link.href = canvas.toDataURL('image/png');
-                link.click();
-                
-                // 使用alert_modal提供的showAlert函数
-                showAlert({
-                    title: '保存成功',
-                    message: '图片已保存到相册',
-                    type: 'success'
-                });
+                var dataUrl = canvas.toDataURL('image/png');
+
+                if (supportsDownload()) {
+                    // 现代浏览器：直接触发下载
+                    var link = document.createElement('a');
+                    link.download = '推广海报_' + (currentIndex + 1) + '.png';
+                    link.href = dataUrl;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+
+                    showAlert({
+                        title: '保存成功',
+                        message: '图片已保存到相册',
+                        type: 'success'
+                    });
+                } else {
+                    // 低版本安卓浏览器：打开图片新窗口，提示用户长按保存
+                    var newWin = window.open();
+                    if (newWin) {
+                        newWin.document.write(
+                            '<html><head><meta name="viewport" content="width=device-width, initial-scale=1.0">' +
+                            '<title>长按保存图片</title></head>' +
+                            '<body style="margin:0;background:#000;text-align:center;">' +
+                            '<p style="color:#fff;font-size:16px;padding:12px;margin:0;">长按下方图片，选择"保存图片"</p>' +
+                            '<img src="' + dataUrl + '" style="width:100%;height:auto;display:block;" />' +
+                            '</body></html>'
+                        );
+                        newWin.document.close();
+                    } else {
+                        showAlert({
+                            title: '请长按保存',
+                            message: '请长按图片选择"保存图片"到相册',
+                            type: 'info'
+                        });
+                    }
+                }
             } catch (err) {
-                console.error('保存失败:', err);
+                console.error('[v0] 保存失败:', err);
                 showAlert({
                     title: '保存失败',
-                    message: '保存失败，请重试',
+                    message: '保存失败，请长按图片保存到相册',
                     type: 'error'
                 });
             }
