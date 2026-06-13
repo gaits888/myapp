@@ -52,9 +52,11 @@ body {
   -webkit-justify-content: space-between;
   -ms-flex-pack: justify;
   justify-content: space-between;
+  width: 100%;
   padding: 10px;
   background: #f9f9f9;
   border-radius: 12px;
+  box-sizing: border-box;
 }
 
 .main-category-tabs::-webkit-scrollbar {
@@ -103,6 +105,7 @@ body {
   -webkit-justify-content: space-between;
   -ms-flex-pack: justify;
   justify-content: space-between;
+  width: 100%;
   padding: 10px;
   margin: 10px 0 0 0;
   background: #fff;
@@ -630,7 +633,7 @@ body {
   .publish-container {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 20px;
+    padding: 0 10px 10px 10px;
   }
   
   .publish-item {
