@@ -44,8 +44,10 @@ $pageTitle = "绑定收款方式";
         }
 
         .payment-tabs {
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: -ms-flexbox;
             display: flex;
-            gap: var(--spacing-md);
             margin-bottom: var(--spacing-md);
             background: var(--bg-white);
             padding: var(--spacing-md);
@@ -54,6 +56,9 @@ $pageTitle = "绑定收款方式";
         }
 
         .payment-tab {
+            -webkit-box-flex: 1;
+            -webkit-flex: 1;
+            -ms-flex: 1;
             flex: 1;
             padding: var(--spacing-md);
             border: 1px solid var(--border-light);
@@ -62,6 +67,11 @@ $pageTitle = "绑定收款方式";
             cursor: pointer;
             transition: all var(--transition-base);
             text-align: center;
+        }
+
+        /* 用 margin 代替 gap，兼容低版本浏览器 */
+        .payment-tab + .payment-tab {
+            margin-left: var(--spacing-md);
         }
 
         .payment-tab:hover {
@@ -178,9 +188,19 @@ $pageTitle = "绑定收款方式";
         .upload-preview-actions {
             padding: var(--spacing-md);
             background: var(--bg-light);
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: -ms-flexbox;
             display: flex;
-            gap: var(--spacing-md);
+            -webkit-box-pack: center;
+            -webkit-justify-content: center;
+            -ms-flex-pack: center;
             justify-content: center;
+        }
+
+        /* 用 margin 代替 gap */
+        .upload-preview-actions > * + * {
+            margin-left: var(--spacing-md);
         }
 
         .submit-btn {
@@ -211,8 +231,17 @@ $pageTitle = "绑定收款方式";
         }
 
         .bound-item {
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: -ms-flexbox;
             display: flex;
+            -webkit-box-align: center;
+            -webkit-align-items: center;
+            -ms-flex-align: center;
             align-items: center;
+            -webkit-box-pack: justify;
+            -webkit-justify-content: space-between;
+            -ms-flex-pack: justify;
             justify-content: space-between;
             padding: var(--spacing-md);
             border: 1px solid var(--border-light);
@@ -225,9 +254,14 @@ $pageTitle = "绑定收款方式";
         }
 
         .bound-item-left {
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: -ms-flexbox;
             display: flex;
+            -webkit-box-align: center;
+            -webkit-align-items: center;
+            -ms-flex-align: center;
             align-items: center;
-            gap: var(--spacing-md);
         }
 
         .bound-item-icon {
@@ -235,10 +269,26 @@ $pageTitle = "绑定收款方式";
             height: 32px;
         }
 
+        /* 用 margin 代替 gap：图标与文字间距 */
+        .bound-item-left > .bound-item-icon + .bound-item-info {
+            margin-left: var(--spacing-md);
+        }
+
         .bound-item-info {
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: -ms-flexbox;
             display: flex;
+            -webkit-box-orient: vertical;
+            -webkit-box-direction: normal;
+            -webkit-flex-direction: column;
+            -ms-flex-direction: column;
             flex-direction: column;
-            gap: var(--spacing-xs);
+        }
+
+        /* 用 margin 代替 gap：上下两行文字间距 */
+        .bound-item-info > * + * {
+            margin-top: var(--spacing-xs);
         }
 
         .bound-item-name {
