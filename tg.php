@@ -118,7 +118,7 @@ $pageTitle = "推广素材";
         
         function loadImage() {
             const img = new Image();
-            img.crossOrigin = 'anonymous';
+            // 图片为同源资源，不设置 crossOrigin，避免低版本安卓画布污染/加载失败
             img.onload = function() {
                 // 使用9:16的竖图比例（手机拍摄图片比例）
                 const targetWidth = 800;
@@ -151,14 +151,22 @@ $pageTitle = "推广素材";
         }
         
         function generateAndDrawQRCode() {
-            // 创建临时div用于生成二维码
+            // 创建临时div用于生成二维码（用屏幕外定位代替 display:none，避免部分浏览器不渲染）
             const tempDiv = document.createElement('div');
-            tempDiv.style.display = 'none';
+            tempDiv.style.position = 'absolute';
+            tempDiv.style.left = '-9999px';
+            tempDiv.style.top = '0';
             document.body.appendChild(tempDiv);
-            
+
+            function cleanup() {
+                if (tempDiv.parentNode) {
+                    document.body.removeChild(tempDiv);
+                }
+            }
+
             try {
                 // 使用QRCode库生成二维码
-                const qr = new QRCode(tempDiv, {
+                new QRCode(tempDiv, {
                     text: promotionUrl,
                     width: 150,
                     height: 150,
@@ -166,27 +174,34 @@ $pageTitle = "推广素材";
                     colorLight: "#ffffff",
                     correctLevel: QRCode.CorrectLevel.H
                 });
-                
-                // 等待二维码生成完成
-                setTimeout(() => {
-                    const qrImg = tempDiv.querySelector('img');
-                    if (qrImg && qrImg.complete) {
+
+                // 低版本安卓上 QRCode 可能输出 <canvas> 而非 <img>，需轮询兼容两种情况
+                var tries = 0;
+                var timer = setInterval(function() {
+                    tries++;
+                    var qrCanvas = tempDiv.querySelector('canvas');
+                    var qrImg = tempDiv.querySelector('img');
+
+                    if (qrCanvas) {
+                        // canvas 同步绘制，可直接使用
+                        clearInterval(timer);
+                        drawQRCodeOnCanvas(qrCanvas);
+                        cleanup();
+                    } else if (qrImg && qrImg.complete && qrImg.naturalWidth > 0) {
+                        clearInterval(timer);
                         drawQRCodeOnCanvas(qrImg);
-                    } else if (qrImg) {
-                        qrImg.onload = function() {
-                            drawQRCodeOnCanvas(qrImg);
-                        };
-                    } else {
-                        console.error('[v0] 二维码图片生成失败');
+                        cleanup();
+                    } else if (tries >= 30) {
+                        // 超过约3秒仍未生成，放弃
+                        clearInterval(timer);
+                        console.error('[v0] 二维码生成超时');
+                        cleanup();
                     }
-                    
-                    // 清理临时元素
-                    document.body.removeChild(tempDiv);
-                }, 300);
-                
+                }, 100);
+
             } catch (error) {
                 console.error('[v0] 二维码生成异常:', error);
-                document.body.removeChild(tempDiv);
+                cleanup();
             }
         }
         
@@ -197,7 +212,7 @@ $pageTitle = "推广素材";
             const x = canvas.width - qrSize - padding;
             const y = canvas.height - qrSize - padding - 40; // 为文字留出空间
             
-            // 绘制白色圆角背景
+            // 绘制白色��角背景
             ctx.fillStyle = 'white';
             ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
             ctx.shadowBlur = 15;
@@ -261,29 +276,65 @@ $pageTitle = "推广素材";
             document.getElementById('totalPages').textContent = images.length;
         }
         
-        // 保存图片
+        // 保存图片：在 WebView/低版本安卓里，JS 无法直接写入相册，
+        // 因此将海报以 <img> 形式展示在全屏遮罩层，提示用户长按保存。
+        // （<img> 在 WebView 中支持长按"保存图片"，而 <canvas> 不支持）
         function saveImage() {
             try {
-                // 将canvas转换为图片并下载
-                const link = document.createElement('a');
-                link.download = `推广海报_${currentIndex + 1}.png`;
-                link.href = canvas.toDataURL('image/png');
-                link.click();
-                
-                // 使用alert_modal提供的showAlert函数
-                showAlert({
-                    title: '保存成功',
-                    message: '图片已保存到相册',
-                    type: 'success'
-                });
+                var dataUrl = canvas.toDataURL('image/png');
+                showSaveOverlay(dataUrl);
             } catch (err) {
-                console.error('保存失败:', err);
+                console.error('[v0] 生成图片失败:', err);
                 showAlert({
-                    title: '保存失败',
-                    message: '保存失败，请重试',
+                    title: '操作失败',
+                    message: '图片生成失败，请重试',
                     type: 'error'
                 });
             }
+        }
+
+        // 展示全屏遮罩层，让用户长按图片保存
+        function showSaveOverlay(dataUrl) {
+            // 已存在则先移除，避免重复叠加
+            var old = document.getElementById('saveImageOverlay');
+            if (old && old.parentNode) {
+                old.parentNode.removeChild(old);
+            }
+
+            var overlay = document.createElement('div');
+            overlay.id = 'saveImageOverlay';
+            overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.92);z-index:99999;overflow:auto;-webkit-overflow-scrolling:touch;text-align:center;';
+
+            // 关闭按钮（右上角圆形 X，方便用户操作）
+            var closeBtn = document.createElement('div');
+            closeBtn.innerHTML = '&times;';
+            closeBtn.style.cssText = 'position:fixed;top:16px;right:16px;width:40px;height:40px;line-height:38px;text-align:center;font-size:28px;color:#fff;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.6);border-radius:50%;z-index:100000;cursor:pointer;';
+            closeBtn.addEventListener('click', function() {
+                if (overlay.parentNode) {
+                    overlay.parentNode.removeChild(overlay);
+                }
+            });
+
+            var tip = document.createElement('div');
+            tip.style.cssText = 'color:#fff;font-size:15px;line-height:1.6;padding:16px 16px 8px 16px;';
+            tip.innerHTML = '长按下方图片，选择"<b>保存图片</b>"到相册';
+
+            var posterImg = document.createElement('img');
+            posterImg.src = dataUrl;
+            posterImg.style.cssText = 'display:block;width:90%;max-width:360px;margin:8px auto 24px auto;border-radius:8px;';
+
+            overlay.appendChild(closeBtn);
+            overlay.appendChild(tip);
+            overlay.appendChild(posterImg);
+
+            // 点击遮罩空白处关闭（点图片或关闭按钮不触发）
+            overlay.addEventListener('click', function(e) {
+                if (e.target !== posterImg && e.target !== closeBtn) {
+                    overlay.parentNode.removeChild(overlay);
+                }
+            });
+
+            document.body.appendChild(overlay);
         }
         
         // 初始化长按事件
