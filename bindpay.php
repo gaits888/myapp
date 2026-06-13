@@ -322,6 +322,19 @@ $pageTitle = "绑定收款方式";
         .btn {
             padding: 12px;
         }
+
+        /* 隐藏低版本安卓/旧 WebKit 的原生下拉箭头，避免出现两个三角符号 */
+        .select {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            -ms-appearance: none;
+            appearance: none;
+        }
+
+        /* 隐藏 IE/旧浏览器 select 的原生下拉箭头 */
+        .select::-ms-expand {
+            display: none;
+        }
 </style>
 </head>
 <body>
@@ -626,24 +639,27 @@ $pageTitle = "绑定收款方式";
             }
 
             const formData = new FormData();
-                formData.append('image', fileInput.files[0]);
+                // uploads_api.php 需要字段 file + type=image
+                formData.append('file', fileInput.files[0]);
+                formData.append('type', 'image');
 
-                fetch('/opers/forum/upload_image.html', {
+                fetch('/uploads_api.html', {
                     method: 'POST',
                     body: formData
                 })
                 .then(response => response.json())
                 .then(data => {
-                    if (data.success) {
-                        alipayPath = data.filePath;
+                    // uploads_api.php 返回 {code:200, msg, data:{url}}
+                    if (data.code === 200 && data.data && data.data.url) {
+                        alipayPath = data.data.url;
                         submitPaymentInfo(2, '', '', alipayPath);
                     } else {
-                        showInfo(data.message || '图片上传失败');
+                        showInfo(data.msg || '图片上传失败');
                     }
                 })
                 .catch(error => {
                     showInfo('图片上传失败，请重试');
-                    console.error('Upload error:', error);
+                    console.error('[v0] Upload error:', error);
                 });
         }
 
