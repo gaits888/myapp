@@ -13,10 +13,9 @@ $user_code_arr = db('userb')
             ->find();
 $user_code = $user_code_arr['user_code'] ?? '';
 
-$rnd=mt_rand(10,19).'.'.mt_rand(100000,999999);
-$share="https://ndd.worthcloud.tv/qq/?t=".$rnd;
-$promotionLink = $share . '&fid='.$user_code;
+$promotionLink = $base_url . '?inviteCode='.$user_code;
 
+$pageTitle = "推广素材";
 ?>
 <!DOCTYPE html>
 <html lang="zh-CN">
@@ -28,252 +27,13 @@ $promotionLink = $share . '&fid='.$user_code;
 <meta name="description" content="推广素材_<?php echo $webname; ?>">
 <title>推广素材_<?php echo $webname; ?></title>
 <link rel="stylesheet" href="/css/comm.css">
-<!--<link rel="stylesheet" href="/css/promotion.css?t=123">-->
-<style>
- body {
-            padding-top: 50px;
-            padding-bottom: 80px;
-        }
-
-        .page-container {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: var(--spacing-md);
-        }
-
-        /* 素材展示区 */
-        .material-card {
-            background: var(--bg-white);
-            border-radius: var(--radius-lg);
-            padding: var(--spacing-md);
-            box-shadow: var(--shadow-md);
-            margin-bottom: var(--spacing-md);
-        }
-
-        .material-title {
-            font-size: var(--font-lg);
-            font-weight: var(--font-semibold);
-            color: var(--text-primary);
-            margin-bottom: var(--spacing-md);
-        }
-
-        /* 图片容器 */
-        .image-container {
-            position: relative;
-            width: 100%;
-            height: auto; /* 改为自动高度以适应竖图 */
-            background: var(--bg-light);
-            border-radius: var(--radius-lg);
-            overflow: hidden;
-            margin-bottom: var(--spacing-md);
-        }
-
-        #materialCanvas {
-            width: 100%;
-            height: auto; /* 改为自动高度 */
-            display: block; /* 确保canvas正确显示 */
-        }
-
-        /* 导航按钮 */
-        .nav-buttons {
-            display: -webkit-box;
-            display: -webkit-flex;
-            display: -ms-flexbox;
-            display: flex;
-            margin-bottom: var(--spacing-md);
-        }
-
-        .nav-btn {
-            -webkit-box-flex: 1;
-            -webkit-flex: 1;
-            -ms-flex: 1;
-            flex: 1;
-            padding: var(--spacing-md);
-            background: var(--bg-light);
-            border: 1px solid var(--border-light);
-            border-radius: var(--radius-md);
-            color: var(--text-primary);
-            font-size: var(--font-base);
-            font-weight: var(--font-medium);
-            cursor: pointer;
-            transition: all var(--transition-base);
-            display: -webkit-box;
-            display: -webkit-flex;
-            display: -ms-flexbox;
-            display: flex;
-            -webkit-box-align: center;
-            -webkit-align-items: center;
-            -ms-flex-align: center;
-            align-items: center;
-            -webkit-box-pack: center;
-            -webkit-justify-content: center;
-            -ms-flex-pack: center;
-            justify-content: center;
-        }
-
-        /* 两个导航按钮之间用 margin 代替 gap，兼容低版本浏览器 */
-        .nav-btn:first-child {
-            margin-right: 10px;
-        }
-
-        .nav-btn:active {
-            transform: scale(0.98);
-            background: var(--bg-pink-light);
-        }
-
-        .nav-btn svg {
-            width: 18px;
-            height: 18px;
-            vertical-align: middle;
-        }
-
-        /* 用 margin 代替 gap 给图标与文字留间距 */
-        .nav-btn svg:first-child {
-            margin-right: 6px;
-        }
-
-        .nav-btn svg:last-child {
-            margin-left: 6px;
-        }
-
-        /* 保存按钮 */
-        .save-btn {
-            width: 100%;
-            padding: 12px;
-            background: linear-gradient(to right, rgb(248 164 10 / 68%), #ff8fb3);
-            border: none;
-            border-radius: var(--radius-lg);
-            color: var(--white);
-            font-size: var(--font-lg);
-            font-weight: var(--font-semibold);
-            cursor: pointer;
-            transition: all var(--transition-base);
-            display: -webkit-box;
-            display: -webkit-flex;
-            display: -ms-flexbox;
-            display: flex;
-            -webkit-box-align: center;
-            -webkit-align-items: center;
-            -ms-flex-align: center;
-            align-items: center;
-            -webkit-box-pack: center;
-            -webkit-justify-content: center;
-            -ms-flex-pack: center;
-            justify-content: center;
-        }
-
-        .save-btn:active {
-            transform: scale(0.98);
-            opacity: 0.9;
-        }
-
-        .save-btn svg {
-            width: 20px;
-            height: 20px;
-            vertical-align: middle;
-            margin-right: 6px;
-        }
-
-        /* 提示信息 */
-        .tips-card {
-            background: var(--bg-gradient-light);
-            border-radius: var(--radius-lg);
-            padding: var(--spacing-md);
-            margin-bottom: var(--spacing-md);
-        }
-
-        .tips-title {
-            font-size: var(--font-base);
-            font-weight: var(--font-semibold);
-            color: var(--primary-dark);
-            margin-bottom: var(--spacing-md);
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-sm);
-        }
-
-        .tips-title svg {
-            width: 20px;
-            height: 20px;
-        }
-
-        .tips-text {
-            font-size: var(--font-sm);
-            color: var(--text-secondary);
-            line-height: var(--line-height-relaxed);
-        }
-
-        /* 页码指示器 */
-        .page-indicator {
-            display: none;
-            text-align: center;
-            color: var(--text-secondary);
-            font-size: var(--font-sm);
-            margin-bottom: var(--spacing-md);
-        }
-
-        /* 长按提示 */
-        .long-press-hint {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: var(--spacing-md) var(--spacing-md);
-            border-radius: var(--radius-lg);
-            font-size: var(--font-lg);
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity var(--transition-base);
-            z-index: 9999;
-        }
-
-        .long-press-hint.show {
-            opacity: 1;
-        }
-
-        /* 长按进度指示器 */
-        .long-press-progress {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            border-radius: var(--radius-lg);
-            border: 4px solid var(--primary-color);
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.2s;
-        }
-
-        .long-press-progress.active {
-            opacity: 1;
-            animation: pulse 2s ease-in-out;
-        }
-
-        @keyframes pulse {
-            0%, 100% { 
-                border-color: var(--primary-color);
-                box-shadow: 0 0 0 0 rgba(236, 72, 153, 0.4);
-            }
-            50% { 
-                border-color: var(--primary-dark);
-                box-shadow: 0 0 0 10px rgba(236, 72, 153, 0);
-            }
-        }
-
-</style>
+<link rel="stylesheet" href="/css/promotion.css?t=<?php echo time(); ?>">
 </head>
 <body>
-    <?php 
-    $pageTitle = "推广素材";
-    include 'comm/header.php'; 
-    ?>
+<?php  include 'comm/header.php';  ?>
 
-    <div class="page-container">
+<div class="page-container">
         <div class="material-card">
-            <!-- <h2 class="material-title">推广海报</h2> -->
             
             <!-- 页码指示器 -->
             <div class="page-indicator">
@@ -289,7 +49,7 @@ $promotionLink = $share . '&fid='.$user_code;
 
             <!-- 导航按钮 -->
             <div class="nav-buttons">
-                <button class="nav-btn" onclick="previousImage();">
+                <button class="nav-btn" onclick="previousImage()">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="15 18 9 12 15 6"></polyline>
                     </svg>
@@ -304,47 +64,40 @@ $promotionLink = $share . '&fid='.$user_code;
             </div>
 
             <!-- 保存按钮 -->
-            <button class="save-btn" onclick="saveImage()" style="margin-left:10px;">
+            <button class="save-btn" onclick="saveImage()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                     <polyline points="7 10 12 15 17 10"></polyline>
                     <line x1="12" y1="15" x2="12" y2="3"></line>
                 </svg>
-                保存推广图片
+                保存图片
             </button>
         </div>
 
         <!-- 提示信息 -->
-        <!--
         <div class="tips-card">
             <h4 class="tips-title">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <path d="M12 16v-4" stroke="white" stroke-width="2"></path>
-                    <path d="M12 8h.01" stroke="white" stroke-width="2"></path>
-                </svg>
                 使用说明
             </h4>
             <p class="tips-text">
                 点击保存按钮将带有您专属推广二维码的海报保存到相册，分享给好友扫码注册即可获得推广收益。每张海报右下角都自动生成了您的专属推广二维码。
             </p>
         </div>
-        -->
     </div>
 
-    <?php include 'comm/footer.php'; ?>
 
-    <script src="/js/qrcode.min.js"></script>
-    <script>
+<script src="/js/qrcode.min.js"></script>
+<script>
         const promotionUrl = '<?php echo $promotionLink;?>';
         
         // 素材图片列表
         const images = [
-            '/images/tu/1.jpg',
-            '/images/tu/2.jpg',
-            '/images/tu/3.jpg',
-            '/images/tu/4.jpg',
-            '/images/tu/5.jpg',
+            '/images/tg/1.png',
+            '/images/tg/2.png',
+            '/images/tg/3.png',
+            '/images/tg/4.png',
+            '/images/tg/5.png',
+            '/images/tg/6.png',
         ];
         
         let currentIndex = 0;
@@ -365,7 +118,7 @@ $promotionLink = $share . '&fid='.$user_code;
         
         function loadImage() {
             const img = new Image();
-            // 图片为同源资源，不设置 crossOrigin，避免低版本安卓画布污染/加载失败
+            img.crossOrigin = 'anonymous';
             img.onload = function() {
                 // 使用9:16的竖图比例（手机拍摄图片比例）
                 const targetWidth = 800;
@@ -400,14 +153,12 @@ $promotionLink = $share . '&fid='.$user_code;
         function generateAndDrawQRCode() {
             // 创建临时div用于生成二维码
             const tempDiv = document.createElement('div');
-            tempDiv.style.position = 'absolute';
-            tempDiv.style.left = '-9999px';
-            tempDiv.style.top = '0';
+            tempDiv.style.display = 'none';
             document.body.appendChild(tempDiv);
-
+            
             try {
                 // 使用QRCode库生成二维码
-                new QRCode(tempDiv, {
+                const qr = new QRCode(tempDiv, {
                     text: promotionUrl,
                     width: 150,
                     height: 150,
@@ -415,42 +166,27 @@ $promotionLink = $share . '&fid='.$user_code;
                     colorLight: "#ffffff",
                     correctLevel: QRCode.CorrectLevel.H
                 });
-
-                // 低版本安卓上 QRCode 可能输出 <canvas> ��非 <img>，需要轮询兼容两种情况
-                var tries = 0;
-                var timer = setInterval(function() {
-                    tries++;
-                    var qrCanvas = tempDiv.querySelector('canvas');
-                    var qrImg = tempDiv.querySelector('img');
-
-                    if (qrCanvas) {
-                        // canvas 是同步绘制的，可以直接使用
-                        clearInterval(timer);
-                        drawQRCodeOnCanvas(qrCanvas);
-                        cleanup();
-                    } else if (qrImg && qrImg.complete && qrImg.naturalWidth > 0) {
-                        clearInterval(timer);
+                
+                // 等待二维码生成完成
+                setTimeout(() => {
+                    const qrImg = tempDiv.querySelector('img');
+                    if (qrImg && qrImg.complete) {
                         drawQRCodeOnCanvas(qrImg);
-                        cleanup();
-                    } else if (tries >= 30) {
-                        // 超过3秒仍未生成，放弃
-                        clearInterval(timer);
-                        console.error('[v0] 二维码生成超时');
-                        cleanup();
+                    } else if (qrImg) {
+                        qrImg.onload = function() {
+                            drawQRCodeOnCanvas(qrImg);
+                        };
+                    } else {
+                        console.error('[v0] 二维码图片生成失败');
                     }
-                }, 100);
-
-                function cleanup() {
-                    if (tempDiv.parentNode) {
-                        document.body.removeChild(tempDiv);
-                    }
-                }
-
+                    
+                    // 清理临时元素
+                    document.body.removeChild(tempDiv);
+                }, 300);
+                
             } catch (error) {
                 console.error('[v0] 二维码生成异常:', error);
-                if (tempDiv.parentNode) {
-                    document.body.removeChild(tempDiv);
-                }
+                document.body.removeChild(tempDiv);
             }
         }
         
@@ -500,7 +236,7 @@ $promotionLink = $share . '&fid='.$user_code;
             ctx.fillStyle = '#333';
             ctx.font = 'bold 16px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText('扫码注册', x + qrSize / 2, y + qrSize + 30);
+            ctx.fillText('扫一扫 立即约', x + qrSize / 2, y + qrSize + 30);
             
             console.log('[v0] 二维码绘制完成');
         }
@@ -525,65 +261,29 @@ $promotionLink = $share . '&fid='.$user_code;
             document.getElementById('totalPages').textContent = images.length;
         }
         
-        // 保存图片：在 WebView/低版本安卓里，JS 无法直接写入相册，
-        // 因此将海报以 <img> 形式展示在全屏遮罩层，提示用户长按保存。
-        // （<img> 在 WebView 中支持长按"保存图片"，而 <canvas> 不支持）
+        // 保存图片
         function saveImage() {
             try {
-                var dataUrl = canvas.toDataURL('image/png');
-                showSaveOverlay(dataUrl);
-            } catch (err) {
-                console.error('[v0] 生成图片失败:', err);
+                // 将canvas转换为图片并下载
+                const link = document.createElement('a');
+                link.download = `推广海报_${currentIndex + 1}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                
+                // 使用alert_modal提供的showAlert函数
                 showAlert({
-                    title: '操作失败',
-                    message: '图片生成失败，请重试',
+                    title: '保存成功',
+                    message: '图片已保存到相册',
+                    type: 'success'
+                });
+            } catch (err) {
+                console.error('保存失败:', err);
+                showAlert({
+                    title: '保存失败',
+                    message: '保存失败，请重试',
                     type: 'error'
                 });
             }
-        }
-
-        // 展示全屏遮罩层，让用户长按图片保存
-        function showSaveOverlay(dataUrl) {
-            // 已存在则先移除，避免重复叠加
-            var old = document.getElementById('saveImageOverlay');
-            if (old && old.parentNode) {
-                old.parentNode.removeChild(old);
-            }
-
-            var overlay = document.createElement('div');
-            overlay.id = 'saveImageOverlay';
-            overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.92);z-index:99999;overflow:auto;-webkit-overflow-scrolling:touch;text-align:center;';
-
-            // 关闭按钮（右上角圆形 X，方便用户操作）
-            var closeBtn = document.createElement('div');
-            closeBtn.innerHTML = '&times;';
-            closeBtn.style.cssText = 'position:fixed;top:16px;right:16px;width:40px;height:40px;line-height:38px;text-align:center;font-size:28px;color:#fff;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.6);border-radius:50%;z-index:100000;cursor:pointer;';
-            closeBtn.addEventListener('click', function() {
-                if (overlay.parentNode) {
-                    overlay.parentNode.removeChild(overlay);
-                }
-            });
-
-            var tip = document.createElement('div');
-            tip.style.cssText = 'color:#fff;font-size:15px;line-height:1.6;padding:16px 16px 8px 16px;';
-            tip.innerHTML = '长按下方图片，选择"<b>保存图片</b>"到相册';
-
-            var posterImg = document.createElement('img');
-            posterImg.src = dataUrl;
-            posterImg.style.cssText = 'display:block;width:90%;max-width:360px;margin:8px auto 24px auto;border-radius:8px;';
-
-            overlay.appendChild(closeBtn);
-            overlay.appendChild(tip);
-            overlay.appendChild(posterImg);
-
-            // 点击遮罩空白处关闭（点图片本身不关闭，方便长按）
-            overlay.addEventListener('click', function(e) {
-                if (e.target !== posterImg && e.target !== closeBtn) {
-                    overlay.parentNode.removeChild(overlay);
-                }
-            });
-
-            document.body.appendChild(overlay);
         }
         
         // 初始化长按事件
@@ -671,6 +371,8 @@ $promotionLink = $share . '&fid='.$user_code;
         window.onload = init;
     </script>
     
+
+<?php include 'comm/footer.php'; ?>
 <?php include 'comm/alert_modal.php'; ?>
     
 </body>
