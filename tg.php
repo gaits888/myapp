@@ -416,7 +416,7 @@ $promotionLink = $share . '&fid='.$user_code;
                     correctLevel: QRCode.CorrectLevel.H
                 });
 
-                // 低版本安卓上 QRCode 可能输出 <canvas> 而非 <img>，需要轮询兼容两种情况
+                // 低版本安卓上 QRCode 可能输出 <canvas> ��非 <img>，需要轮询兼容两种情况
                 var tries = 0;
                 var timer = setInterval(function() {
                     tries++;
@@ -525,60 +525,54 @@ $promotionLink = $share . '&fid='.$user_code;
             document.getElementById('totalPages').textContent = images.length;
         }
         
-        // 检测是否支持 a.download（低版本安卓浏览器通常不支持）
-        function supportsDownload() {
-            var a = document.createElement('a');
-            return typeof a.download !== 'undefined';
-        }
-
-        // 保存图片
+        // 保存图片：在 WebView/低版本安卓里，JS 无法直接写入相册，
+        // 因此将海报以 <img> 形式展示在全屏遮罩层，提示用户长按保存。
+        // （<img> 在 WebView 中支持长按"保存图片"，而 <canvas> 不支持）
         function saveImage() {
             try {
                 var dataUrl = canvas.toDataURL('image/png');
-
-                if (supportsDownload()) {
-                    // 现代浏览器：直接触发下载
-                    var link = document.createElement('a');
-                    link.download = '推广海报_' + (currentIndex + 1) + '.png';
-                    link.href = dataUrl;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-
-                    showAlert({
-                        title: '保存成功',
-                        message: '图片已保存到相册',
-                        type: 'success'
-                    });
-                } else {
-                    // 低版本安卓浏览器：打开图片新窗口，提示用户长按保存
-                    var newWin = window.open();
-                    if (newWin) {
-                        newWin.document.write(
-                            '<html><head><meta name="viewport" content="width=device-width, initial-scale=1.0">' +
-                            '<title>长按保存图片</title></head>' +
-                            '<body style="margin:0;background:#000;text-align:center;">' +
-                            '<p style="color:#fff;font-size:16px;padding:12px;margin:0;">长按下方图片，选择"保存图片"</p>' +
-                            '<img src="' + dataUrl + '" style="width:100%;height:auto;display:block;" />' +
-                            '</body></html>'
-                        );
-                        newWin.document.close();
-                    } else {
-                        showAlert({
-                            title: '请长按保存',
-                            message: '请长按图片选择"保存图片"到相册',
-                            type: 'info'
-                        });
-                    }
-                }
+                showSaveOverlay(dataUrl);
             } catch (err) {
-                console.error('[v0] 保存失败:', err);
+                console.error('[v0] 生成图片失败:', err);
                 showAlert({
-                    title: '保存失败',
-                    message: '保存失败，请长按图片保存到相册',
+                    title: '操作失败',
+                    message: '图片生成失败，请重试',
                     type: 'error'
                 });
             }
+        }
+
+        // 展示全屏遮罩层，让用户长按图片保存
+        function showSaveOverlay(dataUrl) {
+            // 已存在则先移除，避免重复叠加
+            var old = document.getElementById('saveImageOverlay');
+            if (old && old.parentNode) {
+                old.parentNode.removeChild(old);
+            }
+
+            var overlay = document.createElement('div');
+            overlay.id = 'saveImageOverlay';
+            overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.92);z-index:99999;overflow:auto;-webkit-overflow-scrolling:touch;text-align:center;';
+
+            var tip = document.createElement('div');
+            tip.style.cssText = 'color:#fff;font-size:15px;line-height:1.6;padding:16px 16px 8px 16px;';
+            tip.innerHTML = '长按下方图片，选择"<b>保存图片</b>"到相册<br/><span style="font-size:13px;color:#ffb3cc;">保存后点击任意位置关闭</span>';
+
+            var posterImg = document.createElement('img');
+            posterImg.src = dataUrl;
+            posterImg.style.cssText = 'display:block;width:90%;max-width:360px;margin:8px auto 24px auto;border-radius:8px;';
+
+            overlay.appendChild(tip);
+            overlay.appendChild(posterImg);
+
+            // 点击遮罩空白处关闭（点图片本身不关闭，方便长按）
+            overlay.addEventListener('click', function(e) {
+                if (e.target !== posterImg) {
+                    overlay.parentNode.removeChild(overlay);
+                }
+            });
+
+            document.body.appendChild(overlay);
         }
         
         // 初始化长按事件
