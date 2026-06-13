@@ -89,25 +89,23 @@ body {
 
 /* 发布容器 */
 .publish-container {
-  padding: 10px 10px 10px 10px;
+  padding: 0 10px 10px 10px;
   background: transparent;
 }
 
-/* 筛选标签样式 */
+/* 筛选标签样式：用 table 布局，老安卓浏览器也能等分对齐 */
 .filter-tabs {
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-box-pack: justify;
-  -webkit-justify-content: space-between;
-  -ms-flex-pack: justify;
-  justify-content: space-between;
+  display: table;
+  table-layout: fixed;
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 6px 0;
   padding: 10px;
-  margin-bottom: 10px;
+  margin: 10px 0 10px 0;
   background: #fff;
   border-radius: 10px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-sizing: border-box;
 }
 
 .main-category-btn.active {
@@ -121,11 +119,9 @@ body {
 }
 
 .filter-tab {
-  -webkit-box-flex: 1;
-  -webkit-flex: 1 1 0;
-  -ms-flex: 1 1 0px;
-  flex: 1 1 0;
-  padding: 6px 10px;
+  display: table-cell;
+  width: 25%;
+  padding: 6px 4px;
   color: #666;
   font-size: 13px;
   font-weight: 500;
@@ -136,8 +132,8 @@ body {
   border-radius: 50px;
   background: transparent;
   border: none;
-  margin-right: 8px;
   text-align: center;
+  vertical-align: middle;
 }
 
 .filter-tab:last-child {
