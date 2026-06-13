@@ -554,20 +554,31 @@ $promotionLink = $share . '&fid='.$user_code;
             overlay.id = 'saveImageOverlay';
             overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.92);z-index:99999;overflow:auto;-webkit-overflow-scrolling:touch;text-align:center;';
 
+            // 关闭按钮（右上角圆形 X，方便用户操作）
+            var closeBtn = document.createElement('div');
+            closeBtn.innerHTML = '&times;';
+            closeBtn.style.cssText = 'position:fixed;top:16px;right:16px;width:40px;height:40px;line-height:38px;text-align:center;font-size:28px;color:#fff;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.6);border-radius:50%;z-index:100000;cursor:pointer;';
+            closeBtn.addEventListener('click', function() {
+                if (overlay.parentNode) {
+                    overlay.parentNode.removeChild(overlay);
+                }
+            });
+
             var tip = document.createElement('div');
             tip.style.cssText = 'color:#fff;font-size:15px;line-height:1.6;padding:16px 16px 8px 16px;';
-            tip.innerHTML = '长按下方图片，选择"<b>保存图片</b>"到相册<br/><span style="font-size:13px;color:#ffb3cc;">保存后点击任意位置关闭</span>';
+            tip.innerHTML = '长按下方图片，选择"<b>保存图片</b>"到相册';
 
             var posterImg = document.createElement('img');
             posterImg.src = dataUrl;
             posterImg.style.cssText = 'display:block;width:90%;max-width:360px;margin:8px auto 24px auto;border-radius:8px;';
 
+            overlay.appendChild(closeBtn);
             overlay.appendChild(tip);
             overlay.appendChild(posterImg);
 
             // 点击遮罩空白处关闭（点图片本身不关闭，方便长按）
             overlay.addEventListener('click', function(e) {
-                if (e.target !== posterImg) {
+                if (e.target !== posterImg && e.target !== closeBtn) {
                     overlay.parentNode.removeChild(overlay);
                 }
             });
