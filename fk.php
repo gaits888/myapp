@@ -499,31 +499,27 @@ input[type="file"] {
     document.getElementById('feedbackForm').addEventListener('submit', async function(e) {
       e.preventDefault();
 
-      // 清除之前的错误
-      document.querySelectorAll('.form-error').forEach(el => el.classList.remove('show'));
-
-      // 验证
+      // 验证：内容和验证码为必填项，图片可传可不传
+      const captchaEl = document.getElementById('captcha');
       const content = contentTextarea.value.trim();
-      const captcha = document.getElementById('captcha').value.trim();
-
-      let hasError = false;
+      const captcha = captchaEl.value.trim();
 
       if (!content) {
-        showFieldError('content', '请输入问题描述');
-        hasError = true;
+        alert('请输入问题描述');
+        contentTextarea.focus();
+        return;
       }
 
       if (!captcha) {
-        showFieldError('captcha', '请输入验证码');
-        hasError = true;
+        alert('请输入验证码');
+        captchaEl.focus();
+        return;
       }
-
-      if (hasError) return;
 
       // 准备上传图片
       const submitBtn = document.getElementById('submitBtn');
       submitBtn.disabled = true;
-      submitBtn.textContent = '上传图片中...';
+      submitBtn.textContent = '上传图片��...';
 
       try {
         // 上传所有图片
