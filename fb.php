@@ -204,12 +204,21 @@ body {
 
 .form-select {
   cursor: pointer;
+  /* 加前缀隐藏低版本安卓/旧 WebKit 的原生下拉箭头，避免出现两个三角 */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  -ms-appearance: none;
   appearance: none;
   /* 改为粉色箭头 */
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath fill='%23999999' d='M8 11L3 6h10z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 12px center;
   padding-right: 40px;
+}
+
+/* 隐藏 IE/旧浏览器 select 的原生下拉箭头 */
+.form-select::-ms-expand {
+  display: none;
 }
 
 .form-select option {
