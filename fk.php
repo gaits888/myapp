@@ -519,36 +519,33 @@ $pageTitle = "问题反馈";
     document.getElementById('feedbackForm').addEventListener('submit', async function(e) {
       e.preventDefault();
 
-      // 清除之前的错误
-      document.querySelectorAll('.form-error').forEach(el => el.classList.remove('show'));
-
-      // 验证
-      const content = contentTextarea.value.trim();
-      const captcha = document.getElementById('captcha').value.trim();
-
-      let hasError = false;
+      // 验证：内容和验证码为必填项，图片可传可不传
+      const contentEl = contentTextarea;
+      const captchaEl = document.getElementById('captcha');
+      const content = contentEl.value.trim();
+      const captcha = captchaEl.value.trim();
 
       if (!content) {
-        showFieldError('content', '请输入问题描述');
-        hasError = true;
+        alert('请输入问题描述');
+        contentEl.focus();
+        return;
       }
 
       if (!captcha) {
-        showFieldError('captcha', '请输入验证码');
-        hasError = true;
+        alert('请输入验证码');
+        captchaEl.focus();
+        return;
       }
-
-      if (hasError) return;
 
       // 准备上传图片
       const submitBtn = document.getElementById('submitBtn');
       submitBtn.disabled = true;
-      submitBtn.textContent = '上传图片中...';
+      submitBtn.textContent = uploadedImages.length > 0 ? '上传图片中...' : '提交中...';
 
       try {
-        // 上传所有图片
+        // 上传所有图片（图片为可选，没有图片则跳过）
         const uploadedPaths = [];
-   
+
         for (let i = 0; i < uploadedImages.length; i++) {
           const formData = new FormData();
           formData.append('file', uploadedImages[i]);
@@ -583,10 +580,14 @@ $pageTitle = "问题反馈";
         if (feedbackResult.code === 200) {
           showSuccess(feedbackResult.msg || '反馈提交成功！', '反馈成功', 10000, '/user.html');
         } else {
-          showInfo(feedbackResult.message || '反馈提交失败');
+          // 提交失败（含验证码错误）：提示并刷新验证码
+          showInfo(feedbackResult.msg || '反馈提交失败');
+          refreshCaptcha();
+          submitBtn.disabled = false;
+          submitBtn.textContent = '提交反馈';
         }
       } catch (error) {
-        showInfo(error.message);
+        showInfo(error.message || '网络错误，请稍后重试');
         submitBtn.disabled = false;
         submitBtn.textContent = '提交反馈';
       }
