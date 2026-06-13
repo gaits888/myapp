@@ -87,6 +87,7 @@ $pageTitle = "绑定收款方式";
             width: 32px;
             height: 32px;
             margin: 0 auto var(--spacing-sm);
+            margin-right: 10px;
         }
 
         .payment-tab-name {
@@ -317,6 +318,10 @@ $pageTitle = "绑定收款方式";
             border-color: var(--primary-color);
             color: var(--primary-color);
         }
+        
+        .btn {
+            padding: 12px;
+        }
 </style>
 </head>
 <body>
@@ -426,7 +431,7 @@ $pageTitle = "绑定收款方式";
                             </div>
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-primary btn-full submit-btn"><?php echo $boundAlipay ? '更新绑定' : '确认绑定'; ?></button>
+                    <button type="submit" class="btn btn-primary btn-full submit-btn"><?php echo $boundAlipay ? '更新绑定' : '提交绑定'; ?></button>
                 </form>
             </div>
 
@@ -442,7 +447,7 @@ $pageTitle = "绑定收款方式";
                         <input type="text" class="input" placeholder="请输入USDT钱包地址" value="<?php echo $boundUsdt ? $boundUsdt['usdt'] : ''; ?>"  id="usdtinp">
                         <div class="form-hint">注：本平台仅支持TRC20网络，请仔细核对地址避免转账错误</div>
                     </div>
-                    <button type="submit" class="btn btn-primary btn-full submit-btn"><?php echo $boundUsdt ? '更新绑定' : '确认绑定'; ?></button>
+                    <button type="submit" class="btn btn-primary btn-full submit-btn"><?php echo $boundUsdt ? '更新绑定' : '提交绑定'; ?></button>
                 </form>
             </div>
 
