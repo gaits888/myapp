@@ -68,10 +68,10 @@ body {
   aspect-ratio: 1;
   padding-top: 20px;
   padding-bottom: 20px;
-  background: linear-gradient(135deg, rgba(0, 50, 40, 0.8) 0%, rgba(0, 40, 32, 0.85) 100%);
-  backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(0, 217, 163, 0.15);
-  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
   color: #fff;
   font-size: 16px;
   font-weight: 400;
@@ -80,7 +80,7 @@ body {
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 }
 
 .function-btn::before {
@@ -90,7 +90,7 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, rgba(0, 217, 163, 0.12) 0%, rgba(0, 217, 163, 0.04) 100%);
+  background: rgba(255, 255, 255, 0.06);
   opacity: 0;
   transition: opacity 0.4s ease;
 }
@@ -100,8 +100,8 @@ body {
 }
 
 .function-btn:hover {
-  border-color: rgba(0, 217, 163, 0.4);
-  box-shadow: 0 12px 40px rgba(0, 217, 163, 0.15);
+  border-color: rgba(0, 217, 163, 0.3);
+  box-shadow: 0 8px 28px rgba(0, 217, 163, 0.1);
 }
 
 .btn-icon {
@@ -111,13 +111,13 @@ body {
   background-size: contain;
   background-position: center;
   background-repeat: no-repeat;
-  filter: drop-shadow(0 4px 12px rgba(0, 217, 163, 0.3));
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.12));
   transition: all 0.4s ease;
 }
 
 .function-btn:hover .btn-icon {
-  transform: scale(1.1);
-  filter: drop-shadow(0 6px 20px rgba(0, 217, 163, 0.5));
+  transform: scale(1.08);
+  filter: drop-shadow(0 6px 16px rgba(0, 217, 163, 0.25));
 }
 
 .function-btn:nth-child(1) .btn-icon {
@@ -137,12 +137,12 @@ body {
 }
 
 .btn-text {
-      font-weight: 600;
-    color: #00d9a3;
+      font-weight: 500;
+    color: rgba(255, 255, 255, 0.92);
   position: relative;
   z-index: 1;
   letter-spacing: 2px;
-  opacity: 0.9;
+  opacity: 0.95;
   transition: all 0.3s ease;
 }
 
