@@ -346,6 +346,7 @@ body {
     }
 
     /* 用 float 布局代替 flex，兼容低版本安卓浏览器 */
+    /* 移动优先：默认 2 张一排，不依赖媒体查询，避免低版本安卓 viewport/媒体查询异常导致错乱 */
     .album-grid {
       *zoom: 1;
     }
@@ -358,12 +359,13 @@ body {
 
     .album-grid .album-item {
       float: left;
-      width: 31.33%;
+      width: 48.5%;
       margin-right: 3%;
       margin-bottom: 10px;
     }
-    
-    .album-grid .album-item:nth-child(3n) {
+
+    /* 默认 2 列：第偶数个清除右边距 */
+    .album-grid .album-item:nth-child(2n) {
       margin-right: 0;
     }
 
@@ -371,10 +373,11 @@ body {
       position: relative;
       /* 用 padding 撑出正方形，替代不被旧安卓支持的 aspect-ratio */
       height: 0;
-      padding-bottom: 31.33%;
+      padding-bottom: 48.5%;
       border-radius: 10px;
       overflow: hidden;
       cursor: pointer;
+      box-sizing: border-box;
     }
 
     .album-item img,
@@ -435,22 +438,25 @@ body {
         height: 60px;
       }
 
+      /* 移动端相册保持默认的 2 列布局，无需额外覆盖 */
+    }
+
+    /* 大屏（平板/桌面）改为 3 张一排 */
+    @media (min-width: 768px) {
       .album-grid .album-item {
-        width: 48.5%;
+        width: 31.33%;
         margin-right: 3%;
-        /* 同步调整正方形比例 */
-        padding-bottom: 48.5%;
-      }
-      
-      .album-grid .album-item:nth-child(3n) {
-        margin-right: 3%;
-      }
-      
-      .album-grid .album-item:nth-child(2n) {
-        margin-right: 0;
+        padding-bottom: 31.33%;
       }
 
-    
+      /* 重置 2n，改用 3n 清除右边距 */
+      .album-grid .album-item:nth-child(2n) {
+        margin-right: 3%;
+      }
+
+      .album-grid .album-item:nth-child(3n) {
+        margin-right: 0;
+      }
     }
 
     /* 详情介绍样式 */
