@@ -212,85 +212,69 @@ body {
             width: 100%;
             position: relative;
             height: auto;
-            overflow: hidden;
-            border-radius: 0;
         }
 
-        .carousel-container {
+        /* 网格相册：单列布局，一张一排，100% 宽度，高度自适应。
+           用 block + !important 强制覆盖外部样式，不依赖 grid/flex/aspect-ratio，兼容低版本安卓浏览器。 */
+        .album-grid {
+            display: block !important;
+            width: 100% !important;
+        }
+
+        .album-grid .album-item {
+            display: block !important;
+            float: none !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 0 10px 0 !important;
+            padding: 0 !important;
             position: relative;
-            width: 100%;
-            height: 100%;
+            border-radius: 10px;
+            overflow: hidden;
+            cursor: pointer;
+            box-sizing: border-box !important;
+            background: #f2f2f2;
+            min-height: 120px;
         }
 
-        .carousel-slide {
-            display: none;
-            width: 100%;
-            height: 100%;
+        .album-grid .album-item img,
+        .album-grid .album-item video {
+            display: block !important;
+            width: 100% !important;
+            height: auto !important;
+            border: 0;
         }
 
-        .carousel-slide.active {
-            display: block;
+        .album-grid .album-item img.lazy-loaded {
+            animation: albumFadeIn 0.3s ease;
         }
 
-        .carousel-slide img,
-        .carousel-slide video {
-            width: 100%;
-            height: auto;
-            object-fit: cover;
+        @keyframes albumFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
 
-        .carousel-btn {
+        /* 视频播放标识 */
+        .album-grid .album-item .video-indicator {
             position: absolute;
             top: 50%;
-            transform: translateY(-50%);
-            width: 40px;
-            height: 40px;
-            background: rgba(255, 255, 255, 0.2);
-            border: none;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 48px;
+            height: 48px;
+            background: rgba(0, 0, 0, 0.5);
             border-radius: 50%;
-            cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             color: #fff;
-            box-shadow: var(--shadow-md);
-            transition: all var(--transition-base);
-            z-index: 10;
+            pointer-events: none;
         }
 
-        .carousel-btn:active {
-            transform: translateY(-50%) scale(0.95);
-            background: rgba(255, 255, 255, 1);
-        }
-
-        .carousel-btn.prev {
-            left: 10px;
-        }
-
-        .carousel-btn.next {
-            right: 10px;
-        }
-
-        .carousel-btn svg {
-            width: 20px;
-            height: 20px;
-        }
-
-        .carousel-indicator {
-            position: absolute;
-            bottom: 15px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.6);
-            color: white;
-            padding: 4px 12px;
-            border-radius: 25px;
-            font-size: var(--font-xs);
-            z-index: 10;
-        }
-
-        .detail-image img {
-            border-radius: 5px;
+        .album-grid .album-item .video-indicator svg {
+            width: 22px;
+            height: 22px;
+            margin-left: 2px;
         }
         .verified-badge{
             background: linear-gradient(to right, rgb(248 164 10 / 50%), #ff8fb3);
@@ -629,45 +613,27 @@ body {
                     
                     
                     
-                                <!-- 图片区域 -->
+                                <!-- 图片区域：网格相册（图片在前，视频在后，懒加载） -->
             <div class="detail-image" style="margin-top:10px;">
-                <div class="carousel-container">
-
+                <div class="album-grid">
                     <?php if (!empty($mediaArray)): ?>
-                        <?php foreach ($mediaArray as $k => $value): ?>
-                            <?php $firstMedia = $mediaArray[$k]; ?>
-                            <?php if ($firstMedia['type'] === 'video'): ?>
-                                <div class="carousel-slide <?php if ($k == 0) { echo 'active'; } ?>" onclick="openLightbox(<?php echo $k; ?>)">      
-                                    <!-- 视频懒加载：preload=none，第一张立即加载，其余进入视口后再加载 -->
-                                    <video class="lazy-video" <?php if ($k == 0): ?>src="<?php echo htmlspecialchars($firstMedia['url']); ?>"<?php else: ?>data-src="<?php echo htmlspecialchars($firstMedia['url']); ?>"<?php endif; ?> controls preload="<?php echo $k == 0 ? 'metadata' : 'none'; ?>"></video>
-                                </div>
-                            <?php else: ?>
-                                <div class="carousel-slide <?php if ($k == 0) { echo 'active'; } ?>" onclick="openLightbox(<?php echo $k; ?>)">
-                                    <!-- 图片懒加载：先用 1x1 透明占位符避免破图，第一张立即加载，其余进入视口后由 JS 赋给 src -->
-                                    <img class="lazy-img" <?php if ($k == 0): ?>src="<?php echo htmlspecialchars($firstMedia['url']); ?>"<?php else: ?>src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" data-src="<?php echo htmlspecialchars($firstMedia['url']); ?>"<?php endif; ?> alt="用户照片<?php echo $k + 1; ?>">
-                                </div>
-                            <?php endif; ?>
+                        <?php foreach ($mediaArray as $k => $media): ?>
+                            <div class="album-item" onclick="openLightbox(<?php echo $k; ?>)">
+                                <?php if ($media['type'] === 'image'): ?>
+                                    <!-- 懒加载：先用 1x1 透明占位符避免破图，真实地址放 data-src，进入视口后由 JS 赋给 src -->
+                                    <img class="lazy-img" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" data-src="<?php echo htmlspecialchars($media['url']); ?>" alt="照片<?php echo $k + 1; ?>">
+                                <?php else: ?>
+                                    <!-- 视频封面懒加载：preload=none，进入视口后再加载元数据 -->
+                                    <video class="lazy-video" data-src="<?php echo htmlspecialchars($media['url']); ?>" preload="none" muted playsinline></video>
+                                    <div class="video-indicator">
+                                        <svg viewBox="0 0 24 24" fill="currentColor">
+                                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                                        </svg>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
                         <?php endforeach ?>
                     <?php endif; ?>
-
-                    <!-- 上一张按钮 -->
-                    <div class="carousel-btn prev" onclick="changeSlide(-1)">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="15 18 9 12 15 6"></polyline>
-                        </svg>
-                    </div>
-
-                    <!-- 下一张按钮 -->
-                    <div class="carousel-btn next" onclick="changeSlide(1)">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <path d="M9 18l6-6-6-6"></path>
-                        </svg>
-                    </div>
-
-                    <!-- 指示器 -->
-                    <div class="carousel-indicator">
-                        <span id="currentSlide">1</span> / <span id="totalSlides">6</span>
-                    </div>
                 </div>
             </div>
                     
@@ -745,66 +711,82 @@ body {
     <script src="/js/contact.js?t=<?php echo time(); ?>"></script>
     <!-- Adding JavaScript to toggle favorite state -->
     <script>
-        let currentIndex = 0;
-        const slides = document.querySelectorAll('.carousel-slide');
-        const totalSlides = slides.length;
-        
-        document.getElementById('totalSlides').textContent = totalSlides;
+        /* 相册图片/视频懒加载：兼容低版本安卓浏览器，不依赖 IntersectionObserver */
+        (function() {
+          function getLazyEls() {
+            var els = document.querySelectorAll('.album-grid .lazy-img, .album-grid .lazy-video');
+            return Array.prototype.slice.call(els);
+          }
 
-        // 懒加载：将指定幻灯片内的图片/视频从 data-src 赋给 src
-        function loadSlideMedia(slide) {
-            if (!slide) return;
-            var el = slide.querySelector('.lazy-img, .lazy-video');
-            if (!el) return;
+          function loadEl(el) {
             var src = el.getAttribute('data-src');
             if (!src) return;
             if (el.tagName.toLowerCase() === 'video') {
-                el.setAttribute('preload', 'metadata');
-                el.src = src;
-                el.load && el.load();
+              el.setAttribute('preload', 'metadata');
+              el.src = src;
+              el.load && el.load();
             } else {
-                el.onload = function() { el.className += ' lazy-loaded'; };
-                el.src = src;
+              el.onload = function() { el.className += ' lazy-loaded'; };
+              el.src = src;
             }
             el.removeAttribute('data-src');
-        }
+          }
 
-        // 预加载当前张及其相邻张，切换更顺滑
-        function preloadAround(index) {
-            loadSlideMedia(slides[index]);
-            loadSlideMedia(slides[index + 1]);
-            loadSlideMedia(slides[index - 1]);
-        }
+          function inViewport(el) {
+            var rect = el.getBoundingClientRect();
+            var h = window.innerHeight || document.documentElement.clientHeight;
+            return rect.top < h + 300 && rect.bottom > -300;
+          }
 
-        // 首屏先加载第一张及相邻张
-        preloadAround(currentIndex);
-
-        function changeSlide(direction) {
-            // 暂停当前视频
-            const currentSlide = slides[currentIndex];
-            const currentVideo = currentSlide.querySelector('video');
-            if (currentVideo) {
-                currentVideo.pause();
+          function lazyLoad() {
+            var els = getLazyEls();
+            if (els.length === 0) return;
+            for (var i = 0; i < els.length; i++) {
+              if (inViewport(els[i])) {
+                loadEl(els[i]);
+              }
             }
+          }
 
-            // 移除当前active类
-            slides[currentIndex].classList.remove('active');
-            
-            // 计算新索引（支持循环）
-            currentIndex = currentIndex + direction;
-            
-            if (currentIndex >= totalSlides) {
-                currentIndex = 0;  // 从最后一张到第一张
-            } else if (currentIndex < 0) {
-                currentIndex = totalSlides - 1;  // 从第一张到最后一张
+          function loadAll() {
+            var els = getLazyEls();
+            for (var i = 0; i < els.length; i++) {
+              loadEl(els[i]);
             }
-            // 切换前先懒加载目标幻灯片及相邻张
-            preloadAround(currentIndex);
-            // 添加新的active类
-            slides[currentIndex].classList.add('active');
-            // 更新指示器
-            document.getElementById('currentSlide').textContent = currentIndex + 1;
-        }
+          }
+
+          function init() {
+            if (!('getBoundingClientRect' in document.documentElement)) {
+              loadAll();
+              return;
+            }
+            lazyLoad();
+            var ticking = false;
+            function onScroll() {
+              if (ticking) return;
+              ticking = true;
+              setTimeout(function() {
+                lazyLoad();
+                ticking = false;
+              }, 150);
+            }
+            if (window.addEventListener) {
+              window.addEventListener('scroll', onScroll, false);
+              window.addEventListener('resize', onScroll, false);
+            } else if (window.attachEvent) {
+              window.attachEvent('onscroll', onScroll);
+              window.attachEvent('onresize', onScroll);
+            }
+          }
+
+          if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            init();
+          } else if (document.addEventListener) {
+            document.addEventListener('DOMContentLoaded', init, false);
+          } else {
+            window.onload = init;
+          }
+        })();
 
         function toggleFavorite(btn) {
             const isAlreadyFavorited = btn.classList.contains('favorited');
