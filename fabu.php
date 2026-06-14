@@ -40,8 +40,9 @@ body {
 
 .publish-desc {
   font-size: 11px;
-  color: #333;
+  color: rgba(255, 255, 255, 0.55);
   line-height: 1.5;
+  margin-top: 6px;
 }
 
 .button-grid {
@@ -67,7 +68,9 @@ body {
   aspect-ratio: 1;
   padding-top: 20px;
   padding-bottom: 20px;
-  background: linear-gradient(135deg, #d7ffed 0%, rgb(56 235 181 / 10%) 100%);
+  background: linear-gradient(135deg, rgba(0, 50, 40, 0.8) 0%, rgba(0, 40, 32, 0.85) 100%);
+  backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(0, 217, 163, 0.15);
   border-radius: 10px;
   color: #fff;
   font-size: 16px;
@@ -77,6 +80,7 @@ body {
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
 }
 
 .function-btn::before {
@@ -86,6 +90,7 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
+  background: linear-gradient(135deg, rgba(0, 217, 163, 0.12) 0%, rgba(0, 217, 163, 0.04) 100%);
   opacity: 0;
   transition: opacity 0.4s ease;
 }
@@ -96,6 +101,7 @@ body {
 
 .function-btn:hover {
   border-color: rgba(0, 217, 163, 0.4);
+  box-shadow: 0 12px 40px rgba(0, 217, 163, 0.15);
 }
 
 .btn-icon {
@@ -132,7 +138,7 @@ body {
 
 .btn-text {
       font-weight: 600;
-    color: #39904e;
+    color: #00d9a3;
   position: relative;
   z-index: 1;
   letter-spacing: 2px;
