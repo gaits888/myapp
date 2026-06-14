@@ -128,7 +128,7 @@ $description=$Area.$webname.','.$Area.'外围模特,'.$Area.'外围小姐,'.$zy.
 <meta name="description" content="<?php echo $description; ?>">
 <link href="/favicon.ico" rel="shortcut icon"/>
 <link rel="stylesheet" href="/css/comm.css">
-<!--<link rel="stylesheet" href="/css/gd_detail.css?t=<?php echo time(); ?>">-->
+<!--<link rel="stylesheet" href="/css/gd_detail.css?t=123">-->
 <style>
 body {
       background: var(--color-bg-page);
@@ -627,7 +627,7 @@ body {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
         </svg>
-        ���私信
+        私信
       </button>
 
       <div class="user-info">
@@ -996,7 +996,50 @@ body {
   <div class="lightbox-counter" id="lightboxCounter">1 / 4</div>
 </div>
 
-<script src="/js/album.js"></script>
+<script>
+function openLightbox(index) {
+  currentImageIndex = index;
+  updateLightboxMedia();
+  document.getElementById('lightbox').classList.add('active');
+}
+
+// Close lightbox
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('active');
+  // 暂停视频播放
+  const video = document.getElementById('lightboxVideo');
+  if (video.style.display !== 'none') {
+    video.pause();
+  }
+}
+
+// Navigate lightbox
+function navigateLightbox(direction) {
+  currentImageIndex = (currentImageIndex + direction + galleryImages.length) % galleryImages.length;
+  updateLightboxMedia();
+}
+
+// Update lightbox media
+function updateLightboxMedia() {
+  const media = galleryImages[currentImageIndex];
+  const image = document.getElementById('lightboxImage');
+  const video = document.getElementById('lightboxVideo');
+  
+  if (media.type === 'image') {
+    image.src = media.url;
+    image.style.display = 'block';
+    video.style.display = 'none';
+    video.pause();
+  } else {
+    video.src = media.url;
+    video.style.display = 'block';
+    image.style.display = 'none';
+  }
+  
+  document.getElementById('lightboxCounter').textContent = `${currentImageIndex + 1} / ${galleryImages.length}`;
+}
+    
+</script>
 
 
 
