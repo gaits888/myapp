@@ -638,11 +638,13 @@ body {
                             <?php $firstMedia = $mediaArray[$k]; ?>
                             <?php if ($firstMedia['type'] === 'video'): ?>
                                 <div class="carousel-slide <?php if ($k == 0) { echo 'active'; } ?>" onclick="openLightbox(<?php echo $k; ?>)">      
-                                    <video src="<?php echo htmlspecialchars($firstMedia['url']); ?>" controls></video>
+                                    <!-- 视频懒加载：preload=none，第一张立即加载，其余进入视口后再加载 -->
+                                    <video class="lazy-video" <?php if ($k == 0): ?>src="<?php echo htmlspecialchars($firstMedia['url']); ?>"<?php else: ?>data-src="<?php echo htmlspecialchars($firstMedia['url']); ?>"<?php endif; ?> controls preload="<?php echo $k == 0 ? 'metadata' : 'none'; ?>"></video>
                                 </div>
                             <?php else: ?>
                                 <div class="carousel-slide <?php if ($k == 0) { echo 'active'; } ?>" onclick="openLightbox(<?php echo $k; ?>)">
-                                    <img src="<?php echo htmlspecialchars($firstMedia['url']); ?>" alt="用户照片1">
+                                    <!-- 图片懒加载：先用 1x1 透明占位符避免破图，第一张立即加载，其余进入视口后由 JS 赋给 src -->
+                                    <img class="lazy-img" <?php if ($k == 0): ?>src="<?php echo htmlspecialchars($firstMedia['url']); ?>"<?php else: ?>src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" data-src="<?php echo htmlspecialchars($firstMedia['url']); ?>"<?php endif; ?> alt="用户照片<?php echo $k + 1; ?>">
                                 </div>
                             <?php endif; ?>
                         <?php endforeach ?>
@@ -749,6 +751,34 @@ body {
         
         document.getElementById('totalSlides').textContent = totalSlides;
 
+        // 懒加载：将指定幻灯片内的图片/视频从 data-src 赋给 src
+        function loadSlideMedia(slide) {
+            if (!slide) return;
+            var el = slide.querySelector('.lazy-img, .lazy-video');
+            if (!el) return;
+            var src = el.getAttribute('data-src');
+            if (!src) return;
+            if (el.tagName.toLowerCase() === 'video') {
+                el.setAttribute('preload', 'metadata');
+                el.src = src;
+                el.load && el.load();
+            } else {
+                el.onload = function() { el.className += ' lazy-loaded'; };
+                el.src = src;
+            }
+            el.removeAttribute('data-src');
+        }
+
+        // 预加载当前张及其相邻张，切换更顺滑
+        function preloadAround(index) {
+            loadSlideMedia(slides[index]);
+            loadSlideMedia(slides[index + 1]);
+            loadSlideMedia(slides[index - 1]);
+        }
+
+        // 首屏先加载第一张及相邻张
+        preloadAround(currentIndex);
+
         function changeSlide(direction) {
             // 暂停当前视频
             const currentSlide = slides[currentIndex];
@@ -768,6 +798,8 @@ body {
             } else if (currentIndex < 0) {
                 currentIndex = totalSlides - 1;  // 从第一张到最后一张
             }
+            // 切换前先懒加载目标幻灯片及相邻张
+            preloadAround(currentIndex);
             // 添加新的active类
             slides[currentIndex].classList.add('active');
             // 更新指示器
