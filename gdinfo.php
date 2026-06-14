@@ -740,8 +740,8 @@ body {
         <div class="album-item" onclick="openLightbox(<?php echo $index; ?>)">
 
         <?php if ($media['type'] === 'image'): ?>
-        <!-- 懒加载：真实地址放 data-src，进入视口后由 JS 赋给 src -->
-        <img class="lazy-img" data-src="<?php echo $media['url']; ?>" alt="照片<?php echo $index + 1; ?>">
+        <!-- 懒加载：先用 1x1 透明占位符避免破图，真实地址放 data-src，进入视口后由 JS 赋给 src -->
+        <img class="lazy-img" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" data-src="<?php echo $media['url']; ?>" alt="照片<?php echo $index + 1; ?>">
         <?php else: ?>
           <!-- 视频封面懒加载：preload=none，进入视口后再加载元数据 -->
           <video class="lazy-video" data-src="<?php echo $media['url']; ?>" preload="none" muted playsinline></video>
