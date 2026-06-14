@@ -40,7 +40,7 @@ body {
 
 .publish-desc {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(31, 59, 53, 0.55);
   line-height: 1.5;
   margin-top: 6px;
 }
@@ -68,11 +68,11 @@ body {
   aspect-ratio: 1;
   padding-top: 20px;
   padding-bottom: 20px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(16px) saturate(140%);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.6);
   border-radius: 14px;
-  color: #fff;
+  color: #1f3b35;
   font-size: 16px;
   font-weight: 400;
   text-decoration: none;
@@ -80,7 +80,7 @@ body {
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 6px 24px rgba(0, 60, 48, 0.08);
 }
 
 .function-btn::before {
@@ -90,7 +90,7 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(255, 255, 255, 0.06);
+  background: linear-gradient(135deg, rgba(0, 217, 163, 0.08) 0%, rgba(0, 217, 163, 0.02) 100%);
   opacity: 0;
   transition: opacity 0.4s ease;
 }
@@ -100,8 +100,8 @@ body {
 }
 
 .function-btn:hover {
-  border-color: rgba(0, 217, 163, 0.3);
-  box-shadow: 0 8px 28px rgba(0, 217, 163, 0.1);
+  border-color: rgba(0, 217, 163, 0.35);
+  box-shadow: 0 10px 30px rgba(0, 217, 163, 0.12);
 }
 
 .btn-icon {
@@ -137,12 +137,12 @@ body {
 }
 
 .btn-text {
-      font-weight: 500;
-    color: rgba(255, 255, 255, 0.92);
+      font-weight: 600;
+    color: #1f3b35;
   position: relative;
   z-index: 1;
   letter-spacing: 2px;
-  opacity: 0.95;
+  opacity: 1;
   transition: all 0.3s ease;
 }
 
