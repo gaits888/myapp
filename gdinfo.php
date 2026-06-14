@@ -348,8 +348,11 @@ body {
     /* 用 float 布局代替 flex/grid，兼容低版本安卓浏览器 */
     /* 移动优先：默认 2 张一排，不依赖媒体查询，避免低版本安卓 viewport/媒体查询异常导致错乱 */
     /* 用 .album-section .album-grid 提高优先级，强制覆盖外部 comm.css 可能存在的 display:grid/flex */
+    /* 用 !important 强制覆盖外部 comm.css 中可能存在的 display:grid/flex 单列布局 */
     .album-section .album-grid {
-      display: block;
+      display: block !important;
+      grid-template-columns: none !important;
+      width: 100% !important;
       *zoom: 1;
     }
 
@@ -360,36 +363,40 @@ body {
     }
 
     .album-section .album-grid .album-item {
-      display: block;
-      float: left;
-      width: 48.5%;
-      margin-right: 3%;
-      margin-bottom: 10px;
+      display: block !important;
+      float: left !important;
+      width: 48.5% !important;
+      max-width: 48.5% !important;
+      margin-right: 3% !important;
+      margin-bottom: 10px !important;
+      /* 重置可能继承自 comm.css 的 grid 定位 */
+      grid-column: auto !important;
+      grid-row: auto !important;
+      box-sizing: border-box !important;
     }
 
     /* 默认 2 列：第偶数个清除右边距 */
     .album-section .album-grid .album-item:nth-child(2n) {
-      margin-right: 0;
+      margin-right: 0 !important;
     }
 
-    .album-item {
+    .album-section .album-grid .album-item {
       position: relative;
       /* 用 padding 撑出正方形，替代不被旧安卓支持的 aspect-ratio */
-      height: 0;
-      padding-bottom: 48.5%;
+      height: 0 !important;
+      padding-bottom: 48.5% !important;
       border-radius: 10px;
       overflow: hidden;
       cursor: pointer;
-      box-sizing: border-box;
     }
 
-    .album-item img,
-    .album-item video {
-      position: absolute;
+    .album-section .album-grid .album-item img,
+    .album-section .album-grid .album-item video {
+      position: absolute !important;
       top: 0;
       left: 0;
-      width: 100%;
-      height: 100%;
+      width: 100% !important;
+      height: 100% !important;
       object-fit: cover;
       transition: transform var(--transition-base);
     }
@@ -447,18 +454,19 @@ body {
     /* 大屏（平板/桌面）改为 3 张一排 */
     @media (min-width: 768px) {
       .album-section .album-grid .album-item {
-        width: 31.33%;
-        margin-right: 3%;
-        padding-bottom: 31.33%;
+        width: 31.33% !important;
+        max-width: 31.33% !important;
+        margin-right: 3% !important;
+        padding-bottom: 31.33% !important;
       }
 
       /* 重置 2n，改用 3n 清除右边距 */
       .album-section .album-grid .album-item:nth-child(2n) {
-        margin-right: 3%;
+        margin-right: 3% !important;
       }
 
       .album-section .album-grid .album-item:nth-child(3n) {
-        margin-right: 0;
+        margin-right: 0 !important;
       }
     }
 
