@@ -378,9 +378,207 @@ $description=$Area.$webname.','.$Area.'外围模特,'.$Area.'外围小姐,'.$zy.
     </div>
 <?php } ?> 
   </main>
- <?php include_once 'comm/album.php'; ?>
+  
+  
+ <?php // include_once 'comm/album.php'; ?>
+ 
+<style>
+  /* Lightbox Modal */
+.lightbox-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.95);
+  z-index: 10000;
+  align-items: center;
+  justify-content: center;
+}
+
+.lightbox-modal.active {
+  display: flex;
+}
+
+.lightbox-content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.lightbox-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  cursor: default;
+}
+
+.lightbox-video {
+  max-width: 90%;
+  max-height: 90%;
+  object-fit: contain;
+  cursor: default;
+}
+
+.lightbox-close{
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    z-index: 10001;
+}
+
+
+.lightbox-close:active {
+  color: #fff;
+  transform: rotate(90deg);
+}
+
+.lightbox-nav {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 10001;
+}
+
+.lightbox-nav:active {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-50%) scale(0.95);
+}
+
+.lightbox-prev {
+  left: 10px;
+}
+
+.lightbox-next {
+  right: 10px;
+}
+
+.lightbox-counter {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(10px);
+  color: #fff;
+  padding: 8px 20px;
+  border-radius: 20px;
+  font-size: 14px;
+  z-index: 10001;
+}
+
+</style>
+ 
+
+<div class="lightbox-modal" id="lightbox" onclick="if(event.target === this) closeLightbox()">
+  <!-- 灯箱内容区域，支持图片和视频 -->
+  <div id="lightboxContent" class="lightbox-content">
+    <img src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" alt="照片" class="lightbox-image" id="lightboxImage" style="display: none;">
+    <video src="" class="lightbox-video" id="lightboxVideo" controls style="display: none;"></video>
+  </div>
+  
+  <div class="lightbox-close" onclick="closeLightbox()">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="18" y1="6" x2="6" y2="18"></line>
+      <line x1="6" y1="6" x2="18" y2="18"></line>
+    </svg>
+  </div>
+
+  <div class="lightbox-nav lightbox-prev" onclick="navigateLightbox(-1)">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M15 18l-6-6 6-6"/>
+    </svg>
+  </div>
+
+  <div class="lightbox-nav lightbox-next" onclick="navigateLightbox(1)">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M9 18l6-6-6-6"/>
+    </svg>
+  </div>
+
+  <div class="lightbox-counter" id="lightboxCounter">1 / 4</div>
+</div>
+
+<script>
+// Open lightbox
+function openLightbox(index) {
+  currentImageIndex = index;
+  updateLightboxMedia();
+  document.getElementById('lightbox').classList.add('active');
+}
+
+// Close lightbox
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('active');
+  // 暂停视频播放
+  const video = document.getElementById('lightboxVideo');
+  if (video.style.display !== 'none') {
+    video.pause();
+  }
+}
+
+// Navigate lightbox
+function navigateLightbox(direction) {
+  currentImageIndex = (currentImageIndex + direction + galleryImages.length) % galleryImages.length;
+  updateLightboxMedia();
+}
+
+// Update lightbox media
+function updateLightboxMedia() {
+  const media = galleryImages[currentImageIndex];
+  const image = document.getElementById('lightboxImage');
+  const video = document.getElementById('lightboxVideo');
+  
+  if (media.type === 'image') {
+    image.src = media.url;
+    image.style.display = 'block';
+    video.style.display = 'none';
+    video.pause();
+  } else {
+    video.src = media.url;
+    video.style.display = 'block';
+    image.style.display = 'none';
+  }
+  
+  document.getElementById('lightboxCounter').textContent = `${currentImageIndex + 1} / ${galleryImages.length}`;
+}
+
+</script>
+
+ 
+ 
+ 
+ 
   <script src="/js/info_collection.js"></script>
-  <script src="/js/contact.js?t=<?php echo time();?>"></script>
+  <script src="/js/contact.js"></script>
   <script>
     let galleryImages = <?php echo json_encode($mediaArray); ?>;
     let currentImageIndex = 0;
