@@ -128,7 +128,463 @@ $description=$Area.$webname.','.$Area.'外围模特,'.$Area.'外围小姐,'.$zy.
 <meta name="description" content="<?php echo $description; ?>">
 <link href="/favicon.ico" rel="shortcut icon"/>
 <link rel="stylesheet" href="/css/comm.css">
-<link rel="stylesheet" href="/css/gd_detail.css?t=<?php echo time(); ?>">
+<!--<link rel="stylesheet" href="/css/gd_detail.css?t=<?php echo time(); ?>">-->
+<style>
+body {
+      background: var(--color-bg-page);
+      margin: 0;
+      padding-top: 50px;
+    }
+
+    /* 主内容区域 */
+    .main-content {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 10px;
+    }
+    
+    /* 用户信息卡片 - 使用绿色渐变 */
+    .user-card {
+      background:linear-gradient(135deg, #00d9a3 0%, #2ded5c 100%);
+      border-radius: 10px;
+      padding:10px;
+      color: var(--white);
+      margin-bottom:10px;
+      position: relative;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      margin-right: 10px;
+      margin-bottom: 0px;
+    }
+
+    .user-avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: var(--radius-full);
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      object-fit: cover;
+      margin-right: 10px;
+    }
+
+    .user-details {
+      flex: 1;
+    }
+
+    .user-nickname {
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: var(--spacing-xs);
+    }
+
+    .user-badges {
+      display: flex;
+      margin-bottom: var(--spacing-sm);
+    }
+
+    .badge {
+      background: rgba(255, 255, 255, 0.25);
+      padding: 2px var(--spacing-sm);
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 500;
+      color: #fff;
+      backdrop-filter: blur(10px);
+      margin-right: var(--spacing-sm);
+    }
+
+    .badge:last-child {
+      margin-right: 0;
+    }
+
+    .message-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(255, 255, 255, 0.9);
+      color: #d37a15;
+      border: none;
+      padding: 6px var(--spacing-sm);
+      border-radius: var(--radius-lg);
+      font-size: 12px;
+      font-weight: var(--font-medium);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      box-shadow: var(--shadow-sm);
+      transition: all var(--transition-base);
+    }
+
+ 
+
+    .message-btn svg {
+      width: 16px;
+      height: 16px;
+      margin-right: 2px;
+    }
+
+    /* 基本信息网格 */
+    .info-grid {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-around;
+      color: #fff;
+    }
+
+    .info-item {
+      text-align: center;
+      width: 18%;
+    }
+
+    .info-label {
+      font-size: 12px;
+      opacity: 0.9;
+      margin-bottom: var(--spacing-xs);
+    }
+
+    .info-value {
+      font-size: var(--font-xl);
+      font-weight: var(--font-bold);
+    }
+
+    /* 详细信息卡片 */
+    .detail-card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 10px;
+      box-shadow: var(--shadow-md);
+      margin-bottom: 10px;
+    }
+
+    .detail-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+    }
+
+    .detail-title svg {
+      width: 20px;
+      height: 20px;
+      color: #26f0b3;
+      margin-right: var(--spacing-sm);
+    }
+
+    .detail-list {
+      display: flex;
+      flex-wrap: wrap;
+    }
+
+    .detail-item {
+      display: flex;
+      align-items: center;
+      padding-bottom: 0;
+      border-bottom: none;
+      width: 50%;
+      box-sizing: border-box;
+      padding-right: 10px;
+      margin-bottom: 10px;
+    }
+
+    .detail-item:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .detail-item-icon {
+      width: 40px;
+      height: 40px;
+      background: rgba(0 217 75 / 8%);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 10px;
+      flex-shrink: 0;
+    }
+
+    .detail-item-icon svg {
+      width: 20px;
+      height: 20px;
+      color: #2ded5c;
+    }
+
+    .detail-item-content {
+      flex: 1;
+    }
+
+    .detail-item-label {
+      font-size: var(--font-sm);
+      color: var(--text-secondary);
+      margin-bottom: 2px;
+    }
+
+    .detail-item-value {
+      font-size: var(--font-base);
+      color: var(--text-primary);
+      font-weight: var(--font-medium);
+    }
+
+    .price-value {
+      font-size: 16px;
+      color: #d99500;
+      font-weight: var(--font-bold);
+    }
+
+    /* 个人相册 */
+    .album-section {
+      background: #fff;
+      border-radius: 10px;
+      padding: 10px;
+      box-shadow: var(--shadow-md);
+      margin-bottom: 10px;
+    }
+
+    .album-grid {
+      display: flex;
+      flex-wrap: wrap;
+    }
+    
+    .album-grid .album-item {
+      width: 31.33%;
+      margin-right: 3%;
+      margin-bottom: 10px;
+    }
+    
+    .album-grid .album-item:nth-child(3n) {
+      margin-right: 0;
+    }
+
+    .album-item {
+      position: relative;
+      aspect-ratio: 1;
+      border-radius: 10px;
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    .album-item img,
+    .album-item video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform var(--transition-base);
+    }
+
+    .album-item:hover img,
+    .album-item:hover video {
+      transform: scale(1.05);
+    }
+
+    .video-indicator {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 40px;
+      height: 40px;
+      background: rgba(0, 0, 0, 0.6);
+      border-radius: var(--radius-full);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(5px);
+    }
+
+    .video-indicator svg {
+      width: 20px;
+      height: 20px;
+      color:#fff;
+      margin-left: 2px;
+    }
+
+    .album-item.video-item {
+      grid-column: span 1;
+      grid-row: span 1;
+    }
+
+    /* 响应式 */
+    @media (max-width: 480px) {
+      .info-item {
+        width: 30%;
+      }
+
+      .info-value {
+        font-size: 16px;
+      }
+
+      .user-avatar {
+        width: 60px;
+        height: 60px;
+      }
+
+      .album-grid .album-item {
+        width: 48.5%;
+        margin-right: 10px;
+      }
+      
+      .album-grid .album-item:nth-child(3n) {
+        margin-right: 10px;
+      }
+      
+      .album-grid .album-item:nth-child(2n) {
+        margin-right: 0;
+      }
+
+    
+    }
+
+    /* 详情介绍样式 */
+    .description-section {
+      background: #fff;
+      border-radius: 10px;
+      padding: 10px;
+      box-shadow: var(--shadow-md);
+      margin: 10px 0;
+    }
+
+    .description-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 10px;
+      text-align: left;
+    }
+
+    .description-content {
+      color: var(--text-secondary);
+      font-size: var(--font-base);
+      line-height: 1.6;
+    }
+
+    .description-content p {
+      margin-bottom: 10px;
+    }
+
+    .description-content p:last-child {
+      margin-bottom: 0;
+    }
+
+    /* 联系方式按钮区域样式 */
+    .contact-section {
+      background: #fff;
+      border-radius: 10px;
+      padding: 10px;
+      box-shadow: var(--shadow-md);
+      margin-top: 10px;
+    }
+
+    .contact-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 10px;
+      text-align: left;
+    }
+
+    .contact-notice {
+      background: linear-gradient(90deg, rgb(217 127 0 / 10%), rgba(0, 217, 163, 0.05));
+      border-left: 0px solid #00d9a3;
+      border-radius: var(--radius-md);
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+
+    .contact-notice-content {
+      display: flex;
+      margin-right: 10px;
+    }
+
+    .contact-notice-icon {
+      flex-shrink: 0;
+      color: #f4b346;
+      margin-right: 5px;
+    }
+
+    .contact-notice-icon svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .contact-notice-text {
+      flex: 1;
+      color: var(--text-secondary);
+      font-size: var(--font-sm);
+      line-height: 1.6;
+    }
+
+    .contact-notice-text p {
+      margin-bottom: var(--spacing-sm);
+    }
+
+    .contact-notice-text p:last-child {
+      margin-bottom: 0;
+    }
+
+    .contact-notice-list {
+      margin-top: var(--spacing-sm);
+      padding-left: 10px;
+    }
+
+    .contact-notice-list li {
+      margin-bottom: var(--spacing-xs);
+      color: var(--text-primary);
+    }
+
+    .contact-buttons {
+      display: flex;
+      flex-direction: column;
+      color: #fff;
+    }
+
+    .contact-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      background: linear-gradient(135deg, #00d9a3 0%, #2ded5c 100%);
+      color: var(--white);
+      border: none;
+      border-radius: 25px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all var(--transition-base);
+      margin-bottom: 10px;
+    }
+
+    .contact-btn:last-child {
+      margin-bottom: 0;
+    }
+
+    .contact-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .contact-btn svg {
+      width: 20px;
+      height: 20px;
+      margin-right: 5px;
+    }
+
+    .contact-btn.secondary {
+      background: #fff;
+      color: #00d9a3;
+      border: 2px solid #00d9a3;
+    }
+
+    .contact-btn.secondary:hover {
+      background: rgba(0, 217, 163, 0.05);
+      transform: translateY(-2px);
+    }
+
+</style>
 </head>
 <body>
 <?php include 'comm/header.php'; ?>
@@ -357,7 +813,163 @@ $description=$Area.$webname.','.$Area.'外围模特,'.$Area.'外围小姐,'.$zy.
       </div>
     </div>
   </main>
- <?php include_once 'comm/album.php'; ?>
+  
+ <?php // include_once 'comm/album.php'; ?>
+ 
+
+
+
+
+<!--<link rel="stylesheet" href="/css/album.css?t=<?php echo time(); ?>">-->
+<style>
+  /* Lightbox Modal */
+.lightbox-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.95);
+  z-index: 10000;
+  align-items: center;
+  justify-content: center;
+}
+
+.lightbox-modal.active {
+  display: flex;
+}
+
+.lightbox-content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.lightbox-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  cursor: default;
+}
+
+.lightbox-video {
+  max-width: 90%;
+  max-height: 90%;
+  object-fit: contain;
+  cursor: default;
+}
+
+.lightbox-close {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  z-index: 10001;
+}
+
+.lightbox-close:active {
+  color: #fff;
+  transform: rotate(90deg);
+}
+
+.lightbox-nav {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 10001;
+}
+
+.lightbox-nav:active {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-50%) scale(0.95);
+}
+
+.lightbox-prev {
+  left: 10px;
+}
+
+.lightbox-next {
+  right: 10px;
+}
+
+.lightbox-counter {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(10px);
+  color: #fff;
+  padding: 8px 20px;
+  border-radius: 20px;
+  font-size: 14px;
+  z-index: 10001;
+}
+
+</style>
+
+
+<div class="lightbox-modal" id="lightbox" onclick="if(event.target === this) closeLightbox()">
+  <!-- 灯箱内容区域，支持图片和视频 -->
+  <div id="lightboxContent" class="lightbox-content">
+    <img src="" alt="照片" class="lightbox-image" id="lightboxImage" style="display: none;">
+    <video src="" class="lightbox-video" id="lightboxVideo" controls style="display: none;"></video>
+  </div>
+  
+  <div class="lightbox-close" onclick="closeLightbox()">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="18" y1="6" x2="6" y2="18"></line>
+      <line x1="6" y1="6" x2="18" y2="18"></line>
+    </svg>
+  </div>
+
+  <div class="lightbox-nav lightbox-prev" onclick="navigateLightbox(-1)">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M15 18l-6-6 6-6"/>
+    </svg>
+  </div>
+
+  <div class="lightbox-nav lightbox-next" onclick="navigateLightbox(1)">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M9 18l6-6-6-6"/>
+    </svg>
+  </div>
+
+  <div class="lightbox-counter" id="lightboxCounter">1 / 4</div>
+</div>
+
+<script src="/js/album.js"></script>
+
+
+
+
  
   <script>
     let galleryImages = <?php echo json_encode($mediaArray); ?>;
