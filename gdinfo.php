@@ -38,14 +38,16 @@ $picsArray  =$picsArrays['arr'];
 $videosArrays =z_imgurl_arr($infos['bdvideos'],$infos['videos'],2);
 $videosArray  =$videosArrays['arr'];
 
-$mediaArray = [];
-
-foreach ($videosArray as $video) {
-    $mediaArray[] = ['type' => 'video', 'url' => $video];
-}
-foreach ($picsArray as $pic) {
-    $mediaArray[] = ['type' => 'image', 'url' => $pic];
-}
+  $mediaArray = [];
+  
+  // 图片显示在前面
+  foreach ($picsArray as $pic) {
+$mediaArray[] = ['type' => 'image', 'url' => $pic];
+  }
+  // 视频显示在后面
+  foreach ($videosArray as $video) {
+$mediaArray[] = ['type' => 'video', 'url' => $video];
+  }
 $mediaCount = count($mediaArray);
 
 // 是否收藏
