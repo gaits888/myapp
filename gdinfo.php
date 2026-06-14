@@ -345,19 +345,22 @@ body {
       margin-bottom: 10px;
     }
 
-    /* 用 float 布局代替 flex，兼容低版本安卓浏览器 */
+    /* 用 float 布局代替 flex/grid，兼容低版本安卓浏览器 */
     /* 移动优先：默认 2 张一排，不依赖媒体查询，避免低版本安卓 viewport/媒体查询异常导致错乱 */
-    .album-grid {
+    /* 用 .album-section .album-grid 提高优先级，强制覆盖外部 comm.css 可能存在的 display:grid/flex */
+    .album-section .album-grid {
+      display: block;
       *zoom: 1;
     }
 
-    .album-grid:after {
+    .album-section .album-grid:after {
       content: "";
       display: block;
       clear: both;
     }
 
-    .album-grid .album-item {
+    .album-section .album-grid .album-item {
+      display: block;
       float: left;
       width: 48.5%;
       margin-right: 3%;
@@ -365,7 +368,7 @@ body {
     }
 
     /* 默认 2 列：第偶数个清除右边距 */
-    .album-grid .album-item:nth-child(2n) {
+    .album-section .album-grid .album-item:nth-child(2n) {
       margin-right: 0;
     }
 
@@ -443,18 +446,18 @@ body {
 
     /* 大屏（平板/桌面）改为 3 张一排 */
     @media (min-width: 768px) {
-      .album-grid .album-item {
+      .album-section .album-grid .album-item {
         width: 31.33%;
         margin-right: 3%;
         padding-bottom: 31.33%;
       }
 
       /* 重置 2n，改用 3n 清除右边距 */
-      .album-grid .album-item:nth-child(2n) {
+      .album-section .album-grid .album-item:nth-child(2n) {
         margin-right: 3%;
       }
 
-      .album-grid .album-item:nth-child(3n) {
+      .album-section .album-grid .album-item:nth-child(3n) {
         margin-right: 0;
       }
     }
