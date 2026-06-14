@@ -40,11 +40,13 @@ $videosArray  =$videosArrays['arr'];
 
 $mediaArray = [];
 
-foreach ($videosArray as $video) {
-    $mediaArray[] = ['type' => 'video', 'url' => $video];
-}
+// 图片显示在前面
 foreach ($picsArray as $pic) {
     $mediaArray[] = ['type' => 'image', 'url' => $pic];
+}
+// 视频显示在后面
+foreach ($videosArray as $video) {
+    $mediaArray[] = ['type' => 'video', 'url' => $video];
 }
 $mediaCount = count($mediaArray);
 
@@ -281,25 +283,15 @@ $description=$Area.$webname.','.$Area.'外围模特,'.$Area.'外围小姐,'.$zy.
 <div class="album-grid">
 
     <?php if ($mediaCount > 0): ?>
-        <?php
-        // 将图片排在视频前面，同类型保持原顺序
-        usort($mediaArray, function($a, $b) {
-            if ($a['type'] === 'image' && $b['type'] === 'video') {
-                return -1; // a 在前
-            }
-            if ($a['type'] === 'video' && $b['type'] === 'image') {
-                return 1;  // b 在前
-            }
-            return 0; // 同类型保持原有顺序
-        });
-        ?>
         <?php foreach ($mediaArray as $index => $media): ?>
             <div class="album-item" onclick="openLightbox(<?php echo $index; ?>)">
 
                 <?php if ($media['type'] === 'image'): ?>
-                    <img src="<?php echo $media['url']; ?>" alt="照片<?php echo $index + 1; ?>">
+                    <!-- 懒加载：先用 1x1 透明占位符避免破图，真实地址放 data-src，进入视口后由 JS 赋给 src -->
+                    <img class="lazy-img" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" data-src="<?php echo $media['url']; ?>" alt="照片<?php echo $index + 1; ?>">
                 <?php else: ?>
-                    <video src="<?php echo $media['url']; ?>" preload="metadata"></video>
+                    <!-- 视频封面懒加载：preload=none，进入视口后再加载元数据 -->
+                    <video class="lazy-video" data-src="<?php echo $media['url']; ?>" preload="none" muted playsinline></video>
                     <div class="video-indicator">
                         <svg viewBox="0 0 24 24" fill="currentColor">
                             <polygon points="5 3 19 12 5 21 5 3"></polygon>
@@ -577,6 +569,86 @@ function updateLightboxMedia() {
  
  
  
+  <script>
+/* 相册图片/视频懒加载：兼容低版本安卓浏览器，不依赖 IntersectionObserver */
+(function() {
+  function getLazyEls() {
+    var els = document.querySelectorAll('.album-grid .lazy-img, .album-grid .lazy-video');
+    return Array.prototype.slice.call(els);
+  }
+
+  function loadEl(el) {
+    var src = el.getAttribute('data-src');
+    if (!src) return;
+    if (el.tagName.toLowerCase() === 'video') {
+      el.setAttribute('preload', 'metadata');
+      el.src = src;
+      el.load && el.load();
+    } else {
+      el.onload = function() {
+        el.className += ' lazy-loaded';
+      };
+      el.src = src;
+    }
+    el.removeAttribute('data-src');
+  }
+
+  function inViewport(el) {
+    var rect = el.getBoundingClientRect();
+    var h = window.innerHeight || document.documentElement.clientHeight;
+    return rect.top < h + 300 && rect.bottom > -300;
+  }
+
+  function lazyLoad() {
+    var els = getLazyEls();
+    if (els.length === 0) return;
+    for (var i = 0; i < els.length; i++) {
+      if (inViewport(els[i])) {
+        loadEl(els[i]);
+      }
+    }
+  }
+
+  function loadAll() {
+    var els = getLazyEls();
+    for (var i = 0; i < els.length; i++) {
+      loadEl(els[i]);
+    }
+  }
+
+  function init() {
+    if (!('getBoundingClientRect' in document.documentElement)) {
+      loadAll();
+      return;
+    }
+    lazyLoad();
+    var ticking = false;
+    function onScroll() {
+      if (ticking) return;
+      ticking = true;
+      setTimeout(function() {
+        lazyLoad();
+        ticking = false;
+      }, 150);
+    }
+    if (window.addEventListener) {
+      window.addEventListener('scroll', onScroll, false);
+      window.addEventListener('resize', onScroll, false);
+    } else if (window.attachEvent) {
+      window.attachEvent('onscroll', onScroll);
+      window.attachEvent('onresize', onScroll);
+    }
+  }
+
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    init();
+  } else if (document.addEventListener) {
+    document.addEventListener('DOMContentLoaded', init, false);
+  } else {
+    window.onload = init;
+  }
+})();
+</script>
   <script src="/js/info_collection.js"></script>
   <script src="/js/contact.js"></script>
   <script>
