@@ -345,12 +345,19 @@ body {
       margin-bottom: 10px;
     }
 
+    /* 用 float 布局代替 flex，兼容低版本安卓浏览器 */
     .album-grid {
-      display: flex;
-      flex-wrap: wrap;
+      *zoom: 1;
     }
-    
+
+    .album-grid:after {
+      content: "";
+      display: block;
+      clear: both;
+    }
+
     .album-grid .album-item {
+      float: left;
       width: 31.33%;
       margin-right: 3%;
       margin-bottom: 10px;
@@ -362,7 +369,9 @@ body {
 
     .album-item {
       position: relative;
-      aspect-ratio: 1;
+      /* 用 padding 撑出正方形，替代不被旧安卓支持的 aspect-ratio */
+      height: 0;
+      padding-bottom: 31.33%;
       border-radius: 10px;
       overflow: hidden;
       cursor: pointer;
@@ -370,6 +379,9 @@ body {
 
     .album-item img,
     .album-item video {
+      position: absolute;
+      top: 0;
+      left: 0;
       width: 100%;
       height: 100%;
       object-fit: cover;
@@ -425,11 +437,13 @@ body {
 
       .album-grid .album-item {
         width: 48.5%;
-        margin-right: 10px;
+        margin-right: 3%;
+        /* 同步调整正方形比例 */
+        padding-bottom: 48.5%;
       }
       
       .album-grid .album-item:nth-child(3n) {
-        margin-right: 10px;
+        margin-right: 3%;
       }
       
       .album-grid .album-item:nth-child(2n) {
@@ -596,7 +610,7 @@ body {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
         </svg>
-        发私信
+        ���私信
       </button>
 
       <div class="user-info">
