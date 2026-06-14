@@ -345,65 +345,50 @@ body {
       margin-bottom: 10px;
     }
 
-    /* 用 float 布局代替 flex/grid，兼容低版本安卓浏览器 */
-    /* 移动优先：默认 2 张一排，不依赖媒体查询，避免低版本安卓 viewport/媒体查询异常导致错乱 */
-    /* 用 .album-section .album-grid 提高优先级，强制覆盖外部 comm.css 可能存在的 display:grid/flex */
-    /* 用 !important 强制覆盖外部 comm.css 中可能存在的 display:grid/flex 单列布局 */
+    /* 相册重构：单列布局，一张一排，100% 宽度，高度自适应。
+       用 !important + block 强制覆盖外部 comm.css 可能存在的 grid/flex 布局，
+       不依赖 grid/flex/aspect-ratio，全面兼容低版本安卓浏览器。 */
     .album-section .album-grid {
       display: block !important;
-      grid-template-columns: none !important;
       width: 100% !important;
-      *zoom: 1;
-    }
-
-    .album-section .album-grid:after {
-      content: "";
-      display: block;
-      clear: both;
     }
 
     .album-section .album-grid .album-item {
       display: block !important;
-      float: left !important;
-      width: 48.5% !important;
-      max-width: 48.5% !important;
-      margin-right: 3% !important;
-      margin-bottom: 10px !important;
-      /* 重置可能继承自 comm.css 的 grid 定位 */
-      grid-column: auto !important;
-      grid-row: auto !important;
-      box-sizing: border-box !important;
-    }
-
-    /* 默认 2 列：第偶数个清除右边距 */
-    .album-section .album-grid .album-item:nth-child(2n) {
-      margin-right: 0 !important;
-    }
-
-    .album-section .album-grid .album-item {
+      float: none !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      margin: 0 0 10px 0 !important;
+      padding: 0 !important;
       position: relative;
-      /* 用 padding 撑出正方形，替代不被旧安卓支持的 aspect-ratio */
-      height: 0 !important;
-      padding-bottom: 48.5% !important;
       border-radius: 10px;
       overflow: hidden;
       cursor: pointer;
+      box-sizing: border-box !important;
+      /* 重置可能继承自 comm.css 的 grid 定位 */
+      grid-column: auto !important;
+      grid-row: auto !important;
+      background: #f2f2f2;
+      /* 懒加载占位最小高度，图片加载后自动撑开 */
+      min-height: 120px;
     }
 
     .album-section .album-grid .album-item img,
     .album-section .album-grid .album-item video {
-      position: absolute !important;
-      top: 0;
-      left: 0;
+      display: block !important;
       width: 100% !important;
-      height: 100% !important;
-      object-fit: cover;
-      transition: transform var(--transition-base);
+      height: auto !important;
+      border: 0;
     }
 
-    .album-item:hover img,
-    .album-item:hover video {
-      transform: scale(1.05);
+    /* 懒加载淡入效果 */
+    .album-section .album-grid .album-item img.lazy-loaded {
+      animation: albumFadeIn 0.3s ease;
+    }
+
+    @keyframes albumFadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
     }
 
     .video-indicator {
@@ -428,11 +413,6 @@ body {
       margin-left: 2px;
     }
 
-    .album-item.video-item {
-      grid-column: span 1;
-      grid-row: span 1;
-    }
-
     /* 响应式 */
     @media (max-width: 480px) {
       .info-item {
@@ -448,26 +428,6 @@ body {
         height: 60px;
       }
 
-      /* 移动端相册保持默认的 2 列布局，无需额外覆盖 */
-    }
-
-    /* 大屏（平板/桌面）改为 3 张一排 */
-    @media (min-width: 768px) {
-      .album-section .album-grid .album-item {
-        width: 31.33% !important;
-        max-width: 31.33% !important;
-        margin-right: 3% !important;
-        padding-bottom: 31.33% !important;
-      }
-
-      /* 重置 2n，改用 3n 清除右边距 */
-      .album-section .album-grid .album-item:nth-child(2n) {
-        margin-right: 3% !important;
-      }
-
-      .album-section .album-grid .album-item:nth-child(3n) {
-        margin-right: 0 !important;
-      }
     }
 
     /* 详情介绍样式 */
@@ -778,10 +738,11 @@ body {
         <div class="album-item" onclick="openLightbox(<?php echo $index; ?>)">
 
         <?php if ($media['type'] === 'image'): ?>
-        <img src="<?php echo $media['url']; ?>" alt="照片<?php echo $index + 1; ?>">
+        <!-- 懒加载：真实地址放 data-src，进入视口后由 JS 赋给 src -->
+        <img class="lazy-img" data-src="<?php echo $media['url']; ?>" alt="照片<?php echo $index + 1; ?>">
         <?php else: ?>
-          <!-- 使用video标签直接显示视频第一帧作为封面，添加preload="metadata"加载视频元数据 -->
-          <video src="<?php echo $media['url']; ?>" preload="metadata" muted playsinline></video>
+          <!-- 视频封面懒加载：preload=none，进入视口后再加载元数据 -->
+          <video class="lazy-video" data-src="<?php echo $media['url']; ?>" preload="none" muted playsinline></video>
           <div class="video-indicator">
             <svg viewBox="0 0 24 24" fill="currentColor">
               <polygon points="5 3 19 12 5 21 5 3"></polygon>
@@ -997,6 +958,87 @@ body {
 </div>
 
 <script>
+/* 相册图片/视频懒加载：兼容低版本安卓浏览器，不依赖 IntersectionObserver */
+(function() {
+  function getLazyEls() {
+    var imgs = document.querySelectorAll('.album-grid .lazy-img, .album-grid .lazy-video');
+    return Array.prototype.slice.call(imgs);
+  }
+
+  function loadEl(el) {
+    var src = el.getAttribute('data-src');
+    if (!src) return;
+    if (el.tagName.toLowerCase() === 'video') {
+      el.setAttribute('preload', 'metadata');
+      el.src = src;
+      el.load && el.load();
+    } else {
+      el.onload = function() {
+        el.className += ' lazy-loaded';
+      };
+      el.src = src;
+    }
+    el.removeAttribute('data-src');
+  }
+
+  function inViewport(el) {
+    var rect = el.getBoundingClientRect();
+    var h = window.innerHeight || document.documentElement.clientHeight;
+    // 提前 300px 预加载
+    return rect.top < h + 300 && rect.bottom > -300;
+  }
+
+  function lazyLoad() {
+    var els = getLazyEls();
+    if (els.length === 0) return;
+    for (var i = 0; i < els.length; i++) {
+      if (inViewport(els[i])) {
+        loadEl(els[i]);
+      }
+    }
+  }
+
+  // 旧浏览器不支持 getBoundingClientRect 时直接全部加载，保证图片一定可见
+  function loadAll() {
+    var els = getLazyEls();
+    for (var i = 0; i < els.length; i++) {
+      loadEl(els[i]);
+    }
+  }
+
+  function init() {
+    if (!('getBoundingClientRect' in document.documentElement)) {
+      loadAll();
+      return;
+    }
+    lazyLoad();
+    var ticking = false;
+    function onScroll() {
+      if (ticking) return;
+      ticking = true;
+      setTimeout(function() {
+        lazyLoad();
+        ticking = false;
+      }, 150);
+    }
+    if (window.addEventListener) {
+      window.addEventListener('scroll', onScroll, false);
+      window.addEventListener('resize', onScroll, false);
+    } else if (window.attachEvent) {
+      window.attachEvent('onscroll', onScroll);
+      window.attachEvent('onresize', onScroll);
+    }
+  }
+
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    init();
+  } else if (document.addEventListener) {
+    document.addEventListener('DOMContentLoaded', init, false);
+  } else {
+    window.onload = init;
+  }
+})();
+
 function openLightbox(index) {
   currentImageIndex = index;
   updateLightboxMedia();
