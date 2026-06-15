@@ -434,7 +434,6 @@ $rk_url = $rk_url_config.'?inviteCode='.$user_inviteCode;
             right: 0;
             bottom: 0;
             background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(4px);
             display: none;
             align-items: center;
             justify-content: center;
@@ -507,10 +506,14 @@ $rk_url = $rk_url_config.'?inviteCode='.$user_inviteCode;
             border-radius: 12px;
             display: block;
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-            /* 允许长按调起系统保存菜单 */
-            -webkit-touch-callout: default;
-            -webkit-user-select: auto;
-            user-select: auto;
+            /* 确保预览图在最上层，且允许长按调起系统“保存图片”菜单 */
+            position: relative;
+            z-index: 2;
+            pointer-events: auto;
+            -webkit-touch-callout: default !important;
+            -webkit-user-select: auto !important;
+            user-select: auto !important;
+            -webkit-user-drag: auto;
         }
 
         .save-preview-loading {
@@ -931,7 +934,18 @@ $rk_url = $rk_url_config.'?inviteCode='.$user_inviteCode;
                     ctx.strokeRect(qrX, qrY, qrSize, qrSize);
 
                     try {
-                        callback(canvas.toDataURL('image/png'));
+                        // 优先用 Blob URL（安卓 WebView 对 blob: 的"保存图片"/下载兼容性优于超长 data: URL）
+                        if (canvas.toBlob) {
+                            canvas.toBlob(function(blob) {
+                                if (blob) {
+                                    callback(URL.createObjectURL(blob));
+                                } else {
+                                    callback(canvas.toDataURL('image/png'));
+                                }
+                            }, 'image/png');
+                        } else {
+                            callback(canvas.toDataURL('image/png'));
+                        }
                     } catch (err) {
                         if (onError) onError(err);
                     }
