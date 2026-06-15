@@ -450,7 +450,8 @@ body{ padding-bottom:0px; }
                             <label for="captchaCode">验证码：</label>
                             <div class="captcha-input-group">
                                 <input style="width: 50%;" type="text" id="captchaCode" placeholder="输入验证码">
-                                <img id="captchaImg" src='/lib/yzmcode.php' alt="验证码" onclick="refreshCaptcha()">
+                                <!-- 初始用透明占位符，验证码仅在打开举报弹窗时才加载，避免首屏无谓请求 -->
+                                <img id="captchaImg" src='data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==' alt="验证码" onclick="refreshCaptcha()">
                             </div>
                         </div>
                         <div class="report-submit">
@@ -838,7 +839,7 @@ let isFavorited = parseInt(iscollectInput.value) === 1;
 const uids=<?php echo $userData['userId']??0;?>;
 favoriteBtn.addEventListener('click', function() {
     if (uids<=0) {
-        showInfo('未登录，请先登录！');
+        showInfo('未登录，请先���录！');
         return;
     }
     // updateFavoriteDisplay();
@@ -1027,7 +1028,7 @@ function refreshCaptcha() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    refreshCaptcha();
+    // 验证码不在页面首次加载时请求，改为打开举报弹窗时再加载（见 openReportModal）
 
     // Use the new modal ID and class names
     const reportModal = document.getElementById('reportModal');
