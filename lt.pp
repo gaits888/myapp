@@ -1,1106 +1,1032 @@
-<?php
+<?php 
 include_once 'loaduser.php';
-include_once 'config.php';
-
-// 初始化数据库连接
-$db = new DbOperation();
-$db3 = new DbOperation3();
-$info_id = intval($_GET['id']);
-// $infos = $db->table('infob')
-//     ->where(['id' => $info_id])
-//     ->find();
-//查询信息是否存在。
-
-//获得Cookie的值 
-$py=Cookie::get('py'); 
-$city=Cookie::get('selectedCityIds'); 
-$currentAreas=Cookie::get('currentAreas'); 
-$currentArea=$currentAreas;
-
-$where = [];
-$where['id'] = $info_id;
-$infos = $db3->table('infob')->where($where)->field('id,uid,flag,sh')->find();
-if (empty($infos)) {
-    echo "<script > window.location.href = '404.html';</script>";
-    die;
+$userId = $userData['userId'];
+if ($userId<=0) {
+    
+    echo "<script >alert('请先登录！');</script>";
+        echo "<script > window.location.href = 'login.html';</script>";
+        die;
 }
 
-if ($infos['flage'] ==0 && $infos['uid'] == $userData['userId'] ) {
-    echo "<script > window.location.href = 'sh.html';</script>";
-    die;
-}
-if ($infos['sh'] ==2 && $infos['uid'] == $userData['userId'] ) {
-    echo "<script > window.location.href = 'shno.html';</script>";
-    die;
-}
+$rk_url_arr = $db->table('fl_rk_url')
+            ->where(['type' => 1])
+            ->find();
+$rk_url_config = $rk_url_arr['url'] ?? '';
 
-$where = [];
-$where['infob.id'] = $info_id;
-$where['infob.flag'] = 1;
-
-$infos = $db3->table('infob')
-    ->join('areab as city_area ON infob.city = city_area.id', 'LEFT')
-    ->join('areab as district_area ON infob.cityid = district_area.id', 'LEFT')
-    ->where($where)
-    // 限制查询字段为：id、title、city、cityid、times、pics以及城市和区县名称
-    ->field('infob.id, infob.title, infob.city, infob.cityid, infob.times, infob.fbtime,infob.price,infob.typeid,infob.content, infob.pics,infob.osspics,infob.oss,infob.sh,infob.age,infob.nums,infob.wmtj,infob.pj,infob.isopen, city_area.fullname as city_name, district_area.fullname as district_name')
+$user_infos =$userInfo = $db->table('userb')
+    ->where(['id' => $userId])
+    ->field('id, user_code')
     ->find();
+$user_inviteCode = $user_infos['user_code'];
 
-    // var_dump($infos);
+//跳转域名
+//$rk_url_config='';
+$rk_url = $rk_url_config.'?inviteCode='.$user_inviteCode;
 
-if (empty($infos)) {
-    echo "<script > window.location.href = '404.html';</script>";
-    die;
-}
-// 增加浏览量
-$db3->querySql("UPDATE infob SET times = COALESCE(times, 0) + 1 WHERE id = $info_id", false);
-
-//图片
-$picsArrays =z_imgurl_arr($infos['pics'],$infos['osspics'],1,$infos['oss']);
-$infos['pic']  = $picsArrays['img'];
-$picsArray  =$picsArrays['arr'];
-
-//视频
-$videoArrays =z_imgurl_arr($infos['videos'],$infos['ossvideos'],1,$infos['oss']);
-$videoArray  =$videoArrays['arr'];
-
-// 合并媒体：图片在前，视频在后（供顶部相册与放大灯箱使用）
-$mediaList = [];
-if (!empty($picsArray)) {
-    foreach ($picsArray as $p) {
-        if ($p !== '') { $mediaList[] = ['type' => 'image', 'url' => $p]; }
-    }
-}
-if (!empty($videoArray)) {
-    foreach ($videoArray as $v) {
-        if ($v !== '') { $mediaList[] = ['type' => 'video', 'url' => $v]; }
-    }
-}
-
-$where = [];
-$where['infob.flag'] = 1;
-$where['infob.typeid'] = $infos['typeid'];
-$where['infob.pics'] = ['!=',''];
-$where[] = " infob.isrz < 2 ";
-$where[] = " infob.ljxx = 0 ";
-
-// var_dump($selectedCityIds);
-if (!empty($city) && $city>0) {
-    $where[] = "(infob.city = $city)";
-}
-
-$tj_list = $db3->table('infob')
-    ->join('areab as city_area ON infob.city = city_area.id', 'LEFT')
-    ->join('areab as district_area ON infob.cityid = district_area.id', 'LEFT')
-    ->where($where)
-    ->field('infob.id, infob.title, infob.city, infob.cityid, infob.times,infob.pics,infob.osspics,infob.oss,infob.sh,infob.price, city_area.fullname as city_name, district_area.fullname as district_name')
-    ->order(' infob.id desc ')
-    ->limit(0, 4)
-    ->select();
-    if ($userData['userId'] == 21500119) {
-       // var_dump($db3->table('infob')->getLastSql());
-    }
-
-
-foreach ($tj_list as &$item) {
-    // pics可能包含多个图片，用|分隔，提取第一张
-    $item['pic'] = z_imgurl($item['pics'],$item['osspics'],1,$item['oss']);
-}
-unset($item);
-
-// 是否收藏
-$existingCollection= $db->table('usersc')->field('id,status')
-    ->where(['user_id' => $userData['userId'], 'info_id' => $info_id,'infotype' => 1])
-    ->find();
-$is_sc = 0;
-if (!empty($existingCollection)) {
-    if ($existingCollection['status'] == 1) {
-        $is_sc = 1;
-    }
-}
-// var_dump($is_sc);
-// 是否解锁
-$is_js = 0;
-
-// 首先判断用户是否已经解锁该信息
-$isUnlocked = $db->table('fl_user_js')
-    ->where(['user_id' => $userData['userId'], 'info_id' => $info_id])
-    ->find();
-
-if ($isUnlocked) {
-    // 如果已经解锁
-    $is_js = 1;
-}
-
-$is_money_sj = 0;
-//如果没有解锁
-if($is_js != 1){
-    //用户是否是vip
-    $vipclass_user = $userInfo['vipclass'] ?? 0;
-
-    if ($vipclass_user > 0) {
-        // 查询用户总查看次数
-        $vipconfig = $db->table('fl_vip_config')->where(['id' => $vipclass_user])->find();
-        $user_all_num = $vipconfig['see_nums'] ?? 0;
-        //用户次数是否用尽。
-        if($user_all_num - $userInfo['ckcs'] <=0){
-            $is_money_sj = 1;
-        }
-    }
-}
-// var_dump($is_money_sj );
-
-function typess($type){
-switch($type){
-    case '1':  $t="休闲会所";    break;
-    case '2':  $t="外围模特";    break; 
-    case '3':  $t="公寓楼凤";    break; 
-    case '4':  $t="桑拿论坛";    break;
-    case '5':  $t="兼职上门";    break; 
-    case '6':  $t="夜场酒吧";    break; 
-}
-    return $t;      
-}
-
-$typename=typess($infos['typeid']);
-$cityname=str_replace("市", "", $infos['city_name']);
-$webtitle=$webname.'_'.$cityname.$typename;
-$keywords=$infos['title'].','.$cityname.$typename.','.$cityname.$webname;
-$description=$infos['content'].','.$cityname.$typename;
-
+// var_dump($rk_url);
 ?>
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title><?php echo $webtitle; ?></title>
-<meta name="author" content="<?php echo $cityname.$webname; ?>" />
-<meta name="keywords" content="<?php echo $keywords; ?>">
-<meta name="description" content="<?php echo $description; ?>">
-<link href="/favicon.ico" rel="shortcut icon"/>
-<link href="/css/header.css" type="text/css" rel="stylesheet" media="all" />
-<link href="/css/info.css?t=123.136781891" type="text/css" rel="stylesheet" media="all" />
-<link href="/css/footer.css?t=123.676" type="text/css" rel="stylesheet" media="all" />
-<script src="/js/jquery-3.6.0.min.js"></script>
-<script src="/js/jquery.lazyload.min.js"></script>
-<script src="/js/clipboard.min.js"></script>
-<script>
-$(document).ready(function() {
-    $("img.lazy").lazyload({
-        threshold: 200,
-        effect: "fadeIn",
-        event: "scroll",
-        failure_limit: 10,
-        skip_invisible: false,
-        placeholder: "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
-    });
-});
-window.initialFavoriteState = <?php echo $is_sc; ?>;
-window.currentInfoId = <?php echo $info_id; ?>;
-</script>
-<style>
-body{ padding-bottom:0px; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>推广素材</title>
+    <meta name="keywords" content="<?php echo $currentPageArr['keywords'];?>">
+    <meta name="description" content="<?php echo $currentPageArr['description'];?>">
+    <link href="css/header.css" type="text/css" rel="stylesheet" media="all" />
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(135deg, #fafafa 0%, #fff 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ff6b9d 0%, #ffa8c5 100%);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: white;
+            box-shadow: 0 2px 12px rgba(255, 107, 157, 0.2);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .back-btn {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border-radius: 50%;
+            transition: all 0.25s;
+            background: rgba(255, 255, 255, 0.2);
+            margin-left: 10px;
+        }
+
+        .back-btn:active {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(0.96);
+        }
+
+        .back-btn svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .header-title {
+            font-size: 17px;
+            font-weight: 600;
+            flex: 1;
+            text-align: center;
+            letter-spacing: 1px;
+        }
+
+        .header-spacer {
+            width: 32px;
+        }
+
+        .promo-container {
+            padding: 10px;
+            max-width: 640px;
+            margin: 0 auto;
+        }
+
+        .promo-header {
+            text-align: center;
+            margin-top: 15px;
+            margin-bottom: 15px;
+        }
+
+        .promo-title {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #ff6b9d 0%, #ff8fb3 50%, #ffb347 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+
+        .promo-subtitle {
+            font-size: 14px;
+            color: #7f8c8d;
+            line-height: 1.6;
+        }
+
+        .promo-info {
+            background: linear-gradient(135deg, #fff0f6 0%, #ffe7f3 100%);
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 12px rgba(255, 107, 157, 0.1);
+        }
+
+        .promo-info-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #ff6b9d;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .promo-info-title svg {
+            width: 20px;
+            height: 20px;
+            fill: #ff6b9d;
+        }
+
+        .promo-info-list {
+            list-style: none;
+        }
+
+        .promo-info-list li {
+            font-size: 14px;
+            color: #2c3e50;
+            line-height: 1.8;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .promo-info-list li::before {
+            content: '●';
+            position: absolute;
+            left: 0;
+            color: #ff8fb3;
+            font-size: 12px;
+        }
+
+        .poster-carousel {
+            position: relative;
+            margin-bottom: 10px;
+        }
+
+        .poster-wrapper {
+            position: relative;
+            width: 100%;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            background: white;
+            touch-action: pan-y;
+        }
+
+        .poster-container {
+            display: flex;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            background: linear-gradient(135deg, #fafafa 0%, #fff 100%);
+        }
+
+        .poster-slide {
+            min-width: 100%;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #f8f9fa 0%, #fff 100%);
+        }
+
+        .poster-image {
+            width: 100%;
+            height: auto; 
+            object-fit: contain;
+            display: block;
+            user-select: none;
+            -webkit-user-drag: none;
+            pointer-events: none;
+        }
+
+        .qr-overlay {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            width: 100px;
+            height: 100px;
+            background: white;
+            border-radius: 10px;
+            padding: 8px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #ff6b9d;
+        }
+
+        .qr-placeholder {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #ff6b9d20 0%, #ffa8c520 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: #ff6b9d;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .carousel-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 10;
+        }
+
+        .carousel-nav:active {
+            transform: translateY(-50%) scale(0.9);
+            background: white;
+        }
+
+        .carousel-nav.prev {
+            left: 10px;
+        }
+
+        .carousel-nav.next {
+            right: 10px;
+        }
+
+        .carousel-nav svg {
+            width: 24px;
+            height: 24px;
+            fill: #ff6b9d;
+        }
+
+        .carousel-dots {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+
+        .dot {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #ffffff;
+            border: 1px solid #ffd0e0;
+            color: #ff6b9d;
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 30px;
+            text-align: center;
+            transition: all 0.3s;
+            cursor: pointer;
+            margin: 0 6px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .dot.active {
+            background: linear-gradient(135deg, #ff6b9d 0%, #ff8fb3 100%);
+            color: #ffffff;
+            border-color: transparent;
+            box-shadow: 0 4px 10px rgba(255, 107, 157, 0.35);
+        }
+
+        .action-tips {
+            text-align: center;
+            padding: 10px;
+            background: white;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .action-tips-text {
+            font-size: 13px;
+            color: #7f8c8d;
+            line-height: 1.6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .action-tips-text svg {
+            width: 18px;
+            height: 18px;
+            fill: #ff6b9d;
+            margin-right: 5px;
+        }
+
+        .generate-poster-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 14px;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #ff6b9d 0%, #ff8fb3 100%);
+            color: #ffffff;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(255, 107, 157, 0.3);
+        }
+
+        .generate-poster-btn:active {
+            transform: scale(0.97);
+            box-shadow: 0 2px 8px rgba(255, 107, 157, 0.2);
+        }
+
+        .generate-poster-btn svg {
+            width: 20px;
+            height: 20px;
+            fill: #ffffff;
+            margin-right: 8px;
+        }
+
+        .promo-steps {
+            background: white;
+            border-radius: 10px;
+            padding: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+            margin-bottom: 20px;
+        }
+
+        .steps-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            text-align: left;
+        }
+
+        .step-item {
+            display: flex;
+            margin-bottom: 10px;
+            align-items: flex-start;
+        }
+
+        .step-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .step-number {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ff6b9d 0%, #ff8fb3 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+            flex-shrink: 0;
+            box-shadow: 0 4px 8px rgba(255, 107, 157, 0.3);
+            margin-top:10px;
+            margin-right: 10px;
+        }
+
+        .step-content {
+            flex: 1;
+            padding-top: 4px;
+        }
+
+        .step-content h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .step-content p {
+            font-size: 13px;
+            color: #7f8c8d;
+            line-height: 1.6;
+        }
+
+        .save-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .save-modal.show {
+            display: flex;
+            opacity: 1;
+        }
+
+        .save-modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 32px 24px 24px;
+            width: 90%;
+            max-width: 360px;
+            text-align: center;
+            transform: scale(0.9);
+            transition: transform 0.3s;
+        }
+
+        .save-modal.show .save-modal-content {
+            transform: scale(1);
+        }
+
+        .save-modal-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 16px;
+            background: linear-gradient(135deg, #ff6b9d20 0%, #ffa8c520 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .save-modal-icon svg {
+            width: 36px;
+            height: 36px;
+            fill: #ff6b9d;
+        }
+
+        .save-modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 12px;
+        }
+
+        .save-modal-text {
+            font-size: 14px;
+            color: #7f8c8d;
+            line-height: 1.6;
+            margin-bottom: 16px;
+        }
+
+        /* 合成图预览：用户对这张图长按即可调起系统"保存图片"菜单 */
+        .save-preview-wrap {
+            position: relative;
+            margin-bottom: 16px;
+        }
+
+        .save-preview-img {
+            width: 100%;
+            max-height: 50vh;
+            object-fit: contain;
+            border-radius: 12px;
+            display: block;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+            /* 允许长按调起系统保存菜单 */
+            -webkit-touch-callout: default;
+            -webkit-user-select: auto;
+            user-select: auto;
+        }
+
+        .save-preview-loading {
+            padding: 40px 0;
+            font-size: 14px;
+            color: #ff6b9d;
+        }
+
+        .save-preview-hint {
+            font-size: 16px;
+            color: #ff6b9d;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .save-modal-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #ff6b9d 0%, #ff8fb3 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(255, 107, 157, 0.3);
+        }
+
+        .save-modal-btn.secondary {
+            background: #f2f2f2;
+            color: #7f8c8d;
+            box-shadow: none;
+            margin-top: 10px;
+        }
+
+        .save-modal-btn:active {
+            transform: scale(0.96);
+            box-shadow: 0 2px 8px rgba(255, 107, 157, 0.2);
+        }
+
+        @media (min-width: 769px) {
+            .promo-container {
+                padding: 32px 24px;
+            }
+        }
+    </style>
 </head>
 <body>
-<header class="header">
-    <div class="back-btn" onclick="window.history.back();">
-        <svg fill="currentColor" viewBox="0 0 24 24">
-            <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
-        </svg>
-    </div>
-    <h1 class="header-title">信息详情</h1>
-    <div class="header-spacer"></div>
-</header>
+    <!-- 头部 -->
+    <style type="text/css">
+        .back-btn {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border-radius: 50%;
+            transition: all 0.25s;
+            background: rgba(255, 255, 255, 0.2);
+        }
 
-    <main class="detail-container">
-        <!-- 相册已移至"详细介绍"文字下方，垂直逐张显示 -->
-        <!-- 原主图容器隐藏保留，避免改动超长图标 SVG -->
-        <div class="lt-gallery-old" style="display:none;">
-            
-            <div style="position:absolute;z-index:5;right:20px;bottom:20px;">
-            
-            <svg t="1765470004028" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="72087" width="32" height="32"><path d="M983.172933 0.003258h-238.124922a40.214999 40.214999 0 0 0-40.726995 39.563367c0 21.876214 18.292239 39.656457 40.726995 39.656457h197.537562v192.091781c0 21.876214 18.245694 39.609912 40.68045 39.609912A40.214999 40.214999 0 0 0 1023.993018 271.361408V39.566625a40.308089 40.308089 0 0 0-40.820085-39.563367zM40.726995 310.924775a40.214999 40.214999 0 0 0 40.68045-39.563367V79.176537h197.537562A40.214999 40.214999 0 0 0 319.672002 39.566625H40.726995A40.214999 40.214999 0 0 0 0 39.566625v231.794783c0 21.829669 18.152604 39.563367 40.726995 39.563367zM278.805372 944.776453H81.45399v-192.091781c0-21.876214-18.292239-39.609912-40.726995-39.609912a40.214999 40.214999 0 0 0-40.726995 39.563367v231.794783c0 21.783124 18.245694 39.563367 40.726995 39.563366h238.218012a40.214999 40.214999 0 0 0 40.726995-39.563366c0-21.876214-18.292239-39.656457-40.86663-39.656457z m704.367561-231.701693a40.214999 40.214999 0 0 0-40.726995 39.563367v192.138326h-197.397927a40.214999 40.214999 0 0 0-40.726995 39.609912c0 21.876214 18.292239 39.609912 40.726995 39.609911h238.218012a40.214999 40.214999 0 0 0 40.726995-39.563366v-231.794783a40.308089 40.308089 0 0 0-40.820085-39.563367z m-172.170463 118.78319c10.705382 0 21.410763-4.049427 29.416527-12.194826a38.911735 38.911735 0 0 0-1.396354-56.040345l-102.585482-95.231351a283.832247 283.832247 0 0 0 53.526907-148.804803c10.472656-160.208362-114.826853-298.354329-279.550094-308.454625a357.233928 357.233928 0 0 0-18.94387-0.558541c-156.577842 0-288.114399 118.59701-298.121604 272.707959-10.379566 160.301452 114.919944 298.354329 279.643184 308.408079a302.729572 302.729572 0 0 0 208.103309-65.302828l101.747669 94.486629c7.912673 7.354132 18.059513 10.984652 28.159808 10.984652z m-102.259666-317.158565a208.56876 208.56876 0 0 1-68.421352 141.217946 219.693048 219.693048 0 0 1-162.349438 56.691978 218.343239 218.343239 0 0 1-149.596071-71.260605 207.125861 207.125861 0 0 1-53.992359-153.226592 208.56876 208.56876 0 0 1 68.421351-141.217946 219.693048 219.693048 0 0 1 162.256349-56.691977 218.343239 218.343239 0 0 1 149.596071 71.30715 205.496781 205.496781 0 0 1 54.085449 153.180046z" fill="#ffffff" p-id="72088"></path></svg>
-            
-            </div>
-            <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-original="<?php echo $infos['pic']??''; ?>" class="main-image lazy">
-        </div>
-        <div class="title-detail">
-            <h1 class="detail-main-title"><?php echo $infos['title']??''; ?></h1>
-            
-            <div class="detail-meta">
-                <span class="detail-meta-item">
-                  
-                    <svg t="1764913725554" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="16769" width="16" height="16"><path d="M510.557138 204.354248c-302.839283 0-458.323497 306.150702-458.323497 306.150702s117.330242 306.189587 458.323497 306.189587c308.802088 0 458.300984-304.995389 458.300984-304.995389S818.167075 204.354248 510.557138 204.354248L510.557138 204.354248 510.557138 204.354248zM511.245823 701.866279c-110.729917 0-190.772928-83.72589-190.772928-191.364399 0-107.647719 80.049151-191.352119 190.772928-191.352119 110.723777 0 190.763718 83.697237 190.763718 191.352119C702.010565 618.140389 621.970624 701.866279 511.245823 701.866279L511.245823 701.866279 511.245823 701.866279zM511.245823 395.675668c-63.286372 0.145309-114.460892 53.321416-114.460892 114.827235 0 61.473073 51.175543 114.821095 114.460892 114.821095 63.282279 0 114.453728-53.352115 114.453728-114.821095C625.703645 448.975595 574.529125 395.556964 511.245823 395.675668L511.245823 395.675668 511.245823 395.675668z" fill="#8a8a8a" p-id="16770"></path></svg>
+        .back-btn:active {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(0.96);
+        }
 
-                    <span><?php echo $infos['times']??0; ?> 浏览</span>
-                </span>
-                <span class="detail-meta-item">
-                   
-                    <svg t="1764913611717" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="12522" width="16" height="16"><path d="M716 180H635.2v121.6h80.8V180z m-324 0H310.4v121.6H392V180z m404.8 80.8h-40.8v80.8H594.4V260.8H432v80.8H270.4V260.8h-40.8c-22.4 0-40.8 18.4-40.8 40.8v526.4c0 22.4 18.4 40.8 40.8 40.8h567.2c22.4 0 40.8-18.4 40.8-40.8V301.6c-0.8-22.4-18.4-40.8-40.8-40.8zM392 706.4H310.4V625.6H392v80.8zM392 544H310.4V463.2H392V544z m161.6 162.4H472.8V625.6h80.8v80.8z m0-162.4H472.8V463.2h80.8V544z m162.4 162.4H635.2V625.6h80.8v80.8z m0-162.4H635.2V463.2h80.8V544z" fill="#8a8a8a" p-id="12523"></path></svg>
-                    <span><?php echo date('Y-m-d', $infos['fbtime']??time()); ?></span>
-                </span>
-            </div>
-        </div>
-        <!-- Detail info -->
-        <div class="detail-info-section">
-            <h2 class="detail-info-title">基本信息</h2>
-            <div class="detail-info-table">
-
-                <div class="detail-info-row">
-                    <div class="detail-info-label">地区：</div>
-                    <div class="detail-info-value">
-                        <?php echo $infos['city_name']??''; ?>-<?php echo $infos['district_name']??''; ?>
-                    </div>
-                </div>
-
-                <div class="detail-info-row">
-                    <div class="detail-info-label">人数：</div>
-                    <div class="detail-info-value">
-                        <?php echo $infos['nums']??''; ?>
-                    </div>
-                </div>
-                <div class="detail-info-row">
-                    <div class="detail-info-label">年龄：</div>
-                    <div class="detail-info-value">
-                        <?php echo $infos['age']??''; ?>
-                    </div>
-                </div>
-                <div class="detail-info-row">
-                    <div class="detail-info-label">颜值：</div>
-                    <div class="detail-info-value">
-                        <?php echo $infos['wmtj']??''; ?>
-                    </div>
-                </div>
-                <div class="detail-info-row">
-                    <div class="detail-info-label">价格：</div>
-                    <div class="detail-info-value">
-                        <?php echo $infos['price']??''; ?>
-                    </div>
-                </div>
-
-                 <div class="detail-info-row">
-                    <div class="detail-info-label">评价：</div>
-                    <div class="detail-info-value">
-                        <?php echo $plArr[$infos['pj']]??''; ?>
-                    </div>
-                </div>
-
-
-
-            </div>
-        </div>
-
-        <!-- Description -->
-        <div class="detail-desc-section">
-            <h2 class="detail-desc-title">详细介绍</h2>
-            <div class="detail-desc-content">
-                <?php echo $infos['content']??''; ?>
-            </div>
-
-            <!-- 相册：文字下方逐张全部显示，懒加载，点击放大 -->
-            <?php if (!empty($mediaList)): ?>
-            <div class="lt-vgallery" id="ltGallery">
-                <?php foreach ($mediaList as $i => $m): ?>
-                <div class="lt-vitem" onclick="ltOpenLightbox(<?php echo $i; ?>)">
-                    <?php if ($m['type'] === 'image'): ?>
-                        <img class="lt-vmedia lazy-media" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" data-src="<?php echo $m['url']; ?>" alt="图片<?php echo $i+1; ?>">
-                    <?php else: ?>
-                        <video class="lt-vmedia lazy-media" data-src="<?php echo $m['url']; ?>#t=0.5" preload="none" muted playsinline></video>
-                        <span class="lt-play-badge"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="8 5 19 12 8 19 8 5"></polygon></svg></span>
-                    <?php endif; ?>
-                </div>
-                <?php endforeach; ?>
-            </div>
-            <?php endif; ?>
-        </div>
-<?php if (!isset($infos['isopen']) ||  $infos['isopen'] ==0){ ?>
-        <!-- Contact section -->
-        <div class="contact-section">
-            <h2 class="contact-title">联系方式</h2>
-
-               <div class="vip-prompt-message" id="vip-see-messageno" <?php echo $is_js ==1 ? 'style="display:none;"' : ''; ?>>
-                    本信息需要解锁后才能查看联系方式，你可以选择以下任意一种方式解锁：
-                </div>
-
-                <div class="vip-prompt-message" id="vip-see-message" <?php echo $is_js ==0 ? 'style="display:none;"' : ''; ?>>
-                    该信息你已解锁，可直接查看联系方式：
-                </div>
-
-            
-            <div id="contactButtons" class="contact-buttons" align="center"  style="text-align:center;">
-               
-                    <div class="contact-btn-primary" <?php if($is_js==0){ echo 'style="display: none;"'; } ?> id="viewedContactBtn" onclick="showContactModal()">
-                    <span style="display: inline-flex; align-items: center; gap: 8px;">
-                    <svg t="1765276236577" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="58756" width="16" height="16" style="margin-right:5px;"><path d="M512 1024a512 512 0 1 1 512-512 512 512 0 0 1-512 512z m174.933333-361.941333a166.826667 166.826667 0 0 0-59.733333-55.274667 20.458667 20.458667 0 0 0-20.053333-1.258667 365.461333 365.461333 0 0 1-34.986667 13.674667c-11.733333 3.712-24.106667 6.016-36.266667 8.533333a8.192 8.192 0 0 1-5.973333-1.728c-4.693333-4.074667-9.386667-8.405333-13.653333-12.8a331.370667 331.370667 0 0 1-70.186667-104.085333 203.818667 203.818667 0 0 1-16.426667-53.333333 16.192 16.192 0 0 1 4.266667-14.4 143.509333 143.509333 0 0 1 15.786667-16.021334c12.373333-9.984 25.386667-19.370667 38.4-28.757333a18.517333 18.517333 0 0 0 8.96-12.224 104.341333 104.341333 0 0 0-3.626667-51.2 159.424 159.424 0 0 0-52.693333-75.413333c-1.92-0.469333-3.626667-0.96-5.546667-1.429334-7.893333-0.170667-15.786667-0.597333-23.893333-0.448a118.485333 118.485333 0 0 0-68.053334 18.730667 173.013333 173.013333 0 0 0-21.12 20.181333l-1.92 7.104c0.426667 6.4 1.066667 12.970667 1.493334 19.477334a692.714667 692.714667 0 0 0 38.613333 188.202666 501.333333 501.333333 0 0 0 123.093333 192 571.434667 571.434667 0 0 0 119.466667 85.632 7.466667 7.466667 0 0 1 0.853333 0.938667c1.28 0.298667 2.346667 0.618667 3.626667 0.938667a95.082667 95.082667 0 0 0 54.4-25.834667 146.112 146.112 0 0 0 37.333333-49.066667 33.92 33.92 0 0 1 3.2-5.525333c0.426667-2.133333 1.066667-4.138667 1.493334-6.208a103.125333 103.125333 0 0 0-16.853334-40.405333z" p-id="58757" fill="#ffffff"></path></svg>
-                    
-                    查看联系方式
-                     </span>
-                </div>
-
-                <div style="margin-top:15px;<?php if($is_js==1){ echo 'display: none;'; } ?>" class="contact-btn-secondary" id="memberContactBtn" align="center"  style="text-align:center;">
-                    
-                    <svg t="1765275619882" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="50873" width="16" height="16" style="margin-right:5px;"><path d="M512 1024C229.233778 1024 0 794.766222 0 512S229.233778 0 512 0s512 229.233778 512 512-229.233778 512-512 512z m284.444444-595.228444a72.490667 72.490667 0 0 0-20.807111-50.432 71.253333 71.253333 0 0 0-100.892444 0 66.816 66.816 0 0 0-20.807111 50.432 68.707556 68.707556 0 0 0 20.807111 50.432c2.474667 3.015111 5.461333 5.575111 8.817778 7.566222a78.833778 78.833778 0 0 1-93.312 13.866666 104.661333 104.661333 0 0 1-49.180445-58.638222 189.084444 189.084444 0 0 1 5.034667-51.057778 71.864889 71.864889 0 0 0 37.205333-63.047111 70.599111 70.599111 0 0 0-20.807111-50.432 70.001778 70.001778 0 0 0-100.892444 0 71.864889 71.864889 0 0 0-20.807111 50.432 72.490667 72.490667 0 0 0 20.807111 50.446223c5.632 5.304889 12.003556 9.770667 18.915555 13.226666a131.100444 131.100444 0 0 1 3.797334 48.554667 105.287111 105.287111 0 0 1-49.820445 59.875555 81.351111 81.351111 0 0 1-95.217778-14.492444 71.864889 71.864889 0 0 0 30.264889-58.624 71.253333 71.253333 0 0 0-70.613333-69.347556 72.533333 72.533333 0 0 0-50.446222 20.807112 71.224889 71.224889 0 0 0 0 100.864 70.627556 70.627556 0 0 0 30.890666 18.275555l59.278223 247.125333a28.373333 28.373333 0 0 0 27.107555 21.432889H658.346667a27.733333 27.733333 0 0 0 27.121777-21.432889l59.264-247.125333A71.864889 71.864889 0 0 0 796.444444 428.771556z" fill="#ffffff" p-id="50874"></path></svg>
-                    
-                    会员解锁
-                </div>
-
-                    <div class="contact-btn-primary" <?php if($is_js==1){ echo 'style="display: none;"'; } ?> id="pointsContactBtn"  onclick="viewContactWithPoints()" align="center" style="text-align:center;">
-                        
-                 <svg t="1765275985800" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="57499" width="16" height="16" style="margin-right:5px;"><path d="M513.024 2.4576C232.2432 2.4576 4.5056 230.1952 4.5056 510.976s227.7376 508.5184 508.5184 508.5184 508.5184-227.7376 508.5184-508.5184S794.0096 2.4576 513.024 2.4576z m0 765.1328c-130.8672 0-236.7488-54.4768-236.7488-121.6512 0-16.7936 6.7584-32.9728 18.6368-47.5136 36.0448 43.6224 120.0128 74.1376 218.112 74.1376 97.8944 0 182.0672-30.5152 218.112-74.1376 12.0832 14.5408 18.6368 30.72 18.6368 47.5136 0.2048 67.1744-105.8816 121.6512-236.7488 121.6512z m0-134.9632c-130.8672 0-236.7488-54.4768-236.7488-121.6512 0-17.408 7.168-34.2016 20.0704-49.152 36.864 42.8032 120.0128 72.4992 216.6784 72.4992 96.6656 0 179.8144-29.9008 216.6784-72.4992 12.9024 14.9504 20.0704 31.744 20.0704 49.152 0.2048 67.1744-105.8816 121.6512-236.7488 121.6512z m0-134.9632c-130.8672 0-236.7488-54.4768-236.7488-121.6512s106.0864-121.6512 236.7488-121.6512 236.7488 54.4768 236.7488 121.6512c0.2048 67.1744-105.8816 121.6512-236.7488 121.6512z" fill="#ffffff" p-id="57500"></path></svg>
-                    
-                    积分解锁
-                </div>
-
-            </div>
-
-            <!-- Already viewed - show contact details -->
-            <div id="contactDetails" class="contact-details hidden">
-                <div class="contact-item">
-                    <div class="contact-item-icon">
-                        <svg viewBox="0 0 24 24">
-                            <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
-                        </svg>
-                    </div>
-                    <div class="contact-item-content">
-                        <div class="contact-item-label">微信号</div>
-                        <div class="contact-item-value">wxid_abc123456</div>
-                    </div>
-                </div>
-                <div class="contact-item">
-                    <div class="contact-item-icon">
-                        <svg viewBox="0 0 24 24">
-                            <path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"/>
-                        </svg>
-                    </div>
-                    <div class="contact-item-content">
-                        <div class="contact-item-label">联系电话</div>
-                        <div class="contact-item-value">138-0000-0000</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Already viewed - show contact details -->
-            <div id="contactViewed" class="contact-viewed hidden">
-                <svg viewBox="0 0 24 24">
-                    <path d="M9 16.17L4.83 12 3.41 13.41 9 19 21 7l-1.41-1.41z"/>
-                </svg>
-                已查看联系方式，信息已展开
-            </div>
-        </div>
-<?php } ?>
-<?php if (isset($infos['isopen']) &&  $infos['isopen'] ==1){ 
-            $contact_infos = $db3->table('infob')
-            ->where($where)
-            ->field('mobile, weixin, qq,yuli')
-            ->find();
-
-
-                include_once 'lib/opens.php';
-              }
-      ?>
-        <div class="detail-actions">
-            
-             <input type="hidden" id="isFavorite" value="0">
-             
-            <div class="action-btn <?php if($is_sc == 1) {echo 'favorited';} ?>" id="favoriteBtn" >
-                
-                <svg id="favoriteIcon" viewBox="0 0 24 24" fill="<?php echo $is_sc == 1 ? '#ff6b9d' : 'none'; ?>" stroke="<?php echo $is_sc == 1 ? '#ff6b9d' : '#999'; ?>" stroke-width="1.5">
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+        .back-btn svg {
+            width: 24px;
+            height: 24px;
+        }
+    </style>
+    <header class="header">
+        <div class="back-btn" onclick="window.history.back();">
+            <svg fill="currentColor" viewBox="0 0 24 24">
+                <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
             </svg>
+        </div>
+        <h1 class="header-title">推广素材</h1>
+        <div class="header-spacer"></div>
+    </header>
 
-                <span id="favoriteText">
-                    <?php if($is_sc == 1) {
-                        echo '已收藏';
-                    }else{
-                        echo '收藏';
-                    } ?>
-               </span>
-            </div>
-            <input type="hidden" id="iscollect" value="<?php echo $is_sc; ?>">
-
-            <div class="action-btn" id="reportBtn" style="margin-left:10px;">
-                <svg viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.5">
-                <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
-                <line x1="4" y1="22" x2="4" y2="15"/>
-            </svg>
-                举报
-            </div>
+    <!-- 主要内容 -->
+    <div class="promo-container">
+        <!-- 推广说明 -->
+        <div class="promo-header">
+            <h2 class="promo-title">邀请好友 躺着赚钱</h2>
+            <p class="promo-subtitle">分享海报给好友，好友注册即可获得丰厚奖励</p>
         </div>
 
-        <!-- 举报模态框 -->
-        <div id="reportModal" class="report-modal">
-            <div class="modal-overlay" onclick="closeReportModal()"></div>
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>举报信息</h3>
-                    <button class="modal-close" id="closeReportModal" aria-label="关闭">
-                        ×
-                    </button>
-                </div>
-                <div class="modal-body" style="max-width: 100%;">
-                    <form class="report-form">
-                        <div class="report-description">
-                            <label for="reportDescription">举报内容：</label>
-                            <textarea id="reportDescription" placeholder="请详细描述举报内容"></textarea>
-                        </div>
-                        <div class="report-captcha" style="transform: translateZ(0); 
-            -webkit-transform: translateZ(0); ">
-                            <label for="captchaCode">验证码：</label>
-                            <div class="captcha-input-group">
-                                <input style="width: 50%;" type="text" id="captchaCode" placeholder="输入验证码">
-                                <!-- 初始用透明占位符，验证码仅在打开举报弹窗时才加载，避免首屏无谓请求 -->
-                                <img id="captchaImg" src='data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==' alt="验证码" onclick="refreshCaptcha()">
-                            </div>
-                        </div>
-                        <div class="report-submit">
-                            <button type="button" style="background: #f5f5f5;color: #666;float: left;" class="submit-btn" id="closeReportModalsss">取 消</button>
-
-                            <button style="float: right;" type="button" id="submitReportBtn" class="submit-btn">提 交</button>
-                        </div>
-                    </form>
-                </div>
+        <!-- 推广信息 -->
+        <div class="promo-info">
+            <div class="promo-info-title">
+                推广奖励
             </div>
+            <ul class="promo-info-list">
+                <li>好友注册成功，您可获得 <strong style="color: #ff6b9d;">5积分</strong> 奖励</li>
+                <li>好友发布信息，您可获得 <strong style="color: #ff6b9d;">10积分</strong> 奖励</li>
+                <li>好友购买VIP会员，您可获得 <strong style="color: #ff6b9d;">40%</strong> 分润</li>
+              <!--  <li>累计推广满10人���升级为 <strong style="color: #ff6b9d;">推广大使</strong></li>  -->
+            </ul>
         </div>
 
-
-        <div class="recommend-section">
-            <h2 class="recommend-title">猜你喜欢</h2>
-            <div class="recommend-grid">
-                <!-- Wrapped each card with <a> tag instead of onclick -->
-               <?php foreach ($tj_list as $key => $value) {?>
-
-                <a href="<?php echo $ym.'/'.$py; ?>/loufeng/<?php echo $value['id'];?>.html" class="recommend-link">
-                    <div class="recommend-item">
-                        <!-- 将 recommend-info 移入 recommend-image-wrapper 内部 -->
-                        <div class="recommend-image-wrapper">
-                            <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-original="<?php echo $value['pic'];?>" alt="<?php echo $value['title'];?>" class="recommend-image lazy">
-                            <div class="recommend-info">
-                                <div class="recommend-item-title">
-                                    <?php echo $value['title'];?>
-                                </div>
-                            </div>
+        <!-- 海报轮播 -->
+        <div class="poster-carousel">
+            <div class="poster-wrapper" id="posterWrapper">
+                <div class="poster-container" id="posterContainer">
+                    <div class="poster-slide">
+                        <img src="/images/tg/1.jpg" alt="推广���报1" class="poster-image">
+                        <div class="qr-overlay">
+                            <div class="qr-placeholder">扫码<br>注册</div>
                         </div>
                     </div>
-                </a>
-                <?php } ?>
-
-            </div>
-        </div>
-    </main>
-
-    <?php include_once '/comm/footer.php'; ?>
-<?php if (!isset($infos['isopen']) ||  $infos['isopen'] ==0){ ?>
-       <div id="contactModal" class="contact-modal hidden" onclick="closeContactModal(event)">
-        <div class="contact-modal-content" onclick="event.stopPropagation()">
-            <div class="contact-modal-header">
-                <h3 class="contact-modal-title">联系方式</h3>
-                <div class="contact-modal-close" onclick="closeContactModal()">
+                    <div class="poster-slide">
+                        <img src="/images/tg/2.jpg" alt="推广海报2" class="poster-image">
+                        <div class="qr-overlay">
+                            <div class="qr-placeholder">扫码<br>注册</div>
+                        </div>
+                    </div>
+                    <div class="poster-slide">
+                        <img src="/images/tg/3.jpg" alt="推广海报3" class="poster-image">
+                        <div class="qr-overlay">
+                            <div class="qr-placeholder">扫码<br>注册</div>
+                        </div>
+                    </div>
+                    <div class="poster-slide">
+                        <img src="/images/tg/4.jpg" alt="推广海报4" class="poster-image">
+                        <div class="qr-overlay">
+                            <div class="qr-placeholder">扫码<br>注册</div>
+                        </div>
+                    </div>
+                    <div class="poster-slide">
+                        <img src="/images/tg/5.jpg" alt="推广海报5" class="poster-image">
+                        <div class="qr-overlay">
+                            <div class="qr-placeholder">扫码<br>注册</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="carousel-nav prev" onclick="prevSlide()">
                     <svg viewBox="0 0 24 24">
-                        <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                        <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+                    </svg>
+                </div>
+                <div class="carousel-nav next" onclick="nextSlide()">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M8.59 16.59L10 18l6-6-6-6-1.41 1.41L13.17 12z"/>
                     </svg>
                 </div>
             </div>
-            
-            <div class="contact-modal-body">
-                <div class="modal-contact-item">
-                    <div class="modal-contact-icon phone">
-                        <svg viewBox="0 0 24 24">
-                            <path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"/>
-                        </svg>
-                    </div>
-                    <div class="modal-contact-text" ><p style="font-size:14px;font-weight:500;">电话</p><span id="modal-mobile"></span></div>
-                    <div class="modal-contact-copy" id="copy-mobile" onclick="copyContactText('modal-mobile')">
-                         <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>复制
-                    </div>
-                </div>
-                <div class="modal-contact-item">
-                    <div class="modal-contact-icon wechat">
-                        
-                        <svg t="1765473969257" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="81652" width="48" height="48"><path d="M699.6 357.2c11.9 0 23.6 0.9 35.2 2.1-31.6-145.8-189.2-254.2-369-254.2C164.7 105.1 0 240.8 0 413c0 99.4 54.8 181 146.4 244.3l-36.6 108.9 127.9-63.5c45.8 8.9 82.5 18.2 128.1 18.2 11.5 0 22.8-0.6 34.1-1.5-7.2-24.2-11.3-49.5-11.3-75.8 0-158.1 137.2-286.4 311-286.4zM503 259c27.5 0 45.8 18 45.8 45.2 0 27.1-18.2 45.3-45.8 45.3-27.4 0-54.9-18.2-54.9-45.3C448 277 475.5 259 503 259z m-256 90.5c-27.4 0-55.1-18.2-55.1-45.3 0-27.2 27.7-45.2 55.1-45.2 27.4 0 45.7 17.9 45.7 45.2-0.1 27.1-18.3 45.3-45.7 45.3z" p-id="81653" fill="#ffffff"></path><path d="M1024 639.3c0 70-44.2 141.3-124.3 200.8l-5.4 4 22.8 74.7-83.3-45.1-3.6 0.9c-35.3 8.8-71.7 17.8-107.4 17.8-166.3 0-301.6-113.6-301.6-253.2S556.5 386 722.8 386c163.3 0.1 301.2 116 301.2 253.3zM621.9 594c27.7 0 45.8-17.9 45.8-36.2 0-18-18.1-36.2-45.8-36.2-18.2 0-36.6 18.1-36.6 36.2 0 18.3 18.4 36.2 36.6 36.2z m201.2 0c27.4 0 45.8-17.9 45.8-36.2 0-18-18.3-36.2-45.8-36.2-18.1 0-36.3 18.1-36.3 36.2 0 18.3 18.2 36.2 36.3 36.2z m0 0" p-id="81654" fill="#ffffff"></path></svg>
+            <div class="carousel-dots" id="carouselDots"></div>
+        </div>
 
-                    </div>
-                    <div class="modal-contact-text"><p style="font-size:14px;font-weight:500;">微信</p><span id="modal-weixin"></span></div>
-                    <div class="modal-contact-copy" id="copy-weixin" onclick="copyContactText('modal-weixin')">
-                        <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>复制
-                    </div>
-                </div>
-                <div class="modal-contact-item">
-                    <div class="modal-contact-icon qq">
-                        
-                  <svg t="1765474296361" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="89956" width="48" height="48"><path d="M931.507451 840.8889c-23.05197 2.785996-89.719883-105.481862-89.719883-105.481862 0 62.689918-32.271958 144.493811-102.101866 203.571733 33.683956 10.383986 109.685856 38.33395 91.60588 68.84191-14.631981 24.685968-251.019672 15.761979-319.263582 8.07399-68.243911 7.68799-304.631601 16.611978-319.263582-8.07399-18.089976-30.49996 57.835924-58.427924 91.56588-68.84191-69.839909-59.077923-102.117866-140.889816-102.117866-203.583733 0 0-66.667913 108.267858-89.717883 105.481862-10.739986-1.299998-24.847967-59.287922 18.693975-199.407739 20.521973-66.047914 43.989942-120.955842 80.287895-211.557724C185.366427 196.125743 281.964301 0.012 512 0c227.473702 0.012 326.311573 192.265748 320.527581 429.925437 36.235953 90.445882 59.823922 145.699809 80.287894 211.555724 43.535943 140.119817 29.431961 198.105741 18.691976 199.407739z" fill="#ffffff" p-id="89957"></path></svg>
-                        
-                    </div>
-                    <div class="modal-contact-text" ><p style="font-size:14px;font-weight:500;">QQ</p><span id="modal-qq"></span></div>
-                    <div class="modal-contact-copy" id="copy-qq" onclick="copyContactText('modal-qq')">
-                         <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>复制
-                    </div>
-                </div>
-                <div class="modal-contact-item">
-                    <div class="modal-contact-icon cloud">
-                        
-                        <svg t="1765474433417" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="92013" width="48" height="48"><path d="M981.25962 291.954992a476.085215 476.085215 0 0 0-110.062711-152.296077 511.919586 511.919586 0 0 0-160.828069-102.383917 546.474158 546.474158 0 0 0-396.73768 0 511.919586 511.919586 0 0 0-162.534468 102.383917A478.218213 478.218213 0 0 0 42.74038 291.954992a451.769035 451.769035 0 0 0-42.659966 187.277249 461.154227 461.154227 0 0 0 127.979897 316.110344l23.036381 196.662441a36.260971 36.260971 0 0 0 35.834371 31.994974 36.260971 36.260971 0 0 0 17.917185-4.692596l148.45668-85.319931a547.327357 547.327357 0 0 0 358.343711-13.651189 511.919586 511.919586 0 0 0 162.534468-102.383917A478.218213 478.218213 0 0 0 981.25962 666.936089a453.902033 453.902033 0 0 0 0-374.981097z m-691.091441 243.161803a55.031355 55.031355 0 1 1 55.031356-55.031355 55.031355 55.031355 0 0 1-53.324957 55.031355z m220.125422 0a55.031355 55.031355 0 1 1 55.031356-55.031355A55.031355 55.031355 0 0 1 512 535.116795z m220.125422 0a55.031355 55.031355 0 1 1 55.031356-55.031355 55.031355 55.031355 0 0 1-53.751557 55.031355z" fill="#ffffff" p-id="92014"></path></svg>
-                    </div>
-                    <div class="modal-contact-text" ><p style="font-size:14px;font-weight:500;">与你</p><span id="modal-yuli"></span></div>
-                    <div class="modal-contact-copy" id="copy-yuli" onclick="copyContactText('modal-yuli')">
-                        <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>复制
-                    </div>
-                </div>
+        <!-- 操作提示 -->
+        <!--
+        <div class="action-tips">
+            <div class="action-tips-text">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                </svg>
+                点击上面的海报，即可生成带二维码的海报并保存分享.
+            </div>
+        </div>
+        -->
 
-                <div class="modal-contact-item" style="display: none;">
+        <!-- 生成推广图按钮 -->
+        <button class="generate-poster-btn" onclick="saveMergedImage(currentSlide)">
+            <svg viewBox="0 0 24 24">
+                <path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2v9.67z"/>
+            </svg>
+            生成推广图
+        </button>
 
-                    <div class="modal-contact-icon telegram">
-                        <svg viewBox="0 0 24 24">
-                            <path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"/>
-                        </svg>
-                    </div>
-                    <div class="modal-contact-text" id="modal-telegram"></div>
-                    <div class="modal-contact-copy" id="copy-telegram" onclick="copyContactText('modal-telegram')">
-                        <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>复制
-                    </div>
+        <!-- 推广步骤 -->
+        <div class="promo-steps">
+            <h3 class="steps-title">推广步骤：</h3>
+            <div class="step-item">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <h4>选择海报</h4>
+                    <p>左右滑动选择您喜欢的推广海报样式.</p>
+                </div>
+            </div>
+            <div class="step-item">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <h4>保存分享</h4>
+                    <p>点击海报生成带二维码的图片，长按保存到相册，分享给微信好友或朋友圈.</p>
+                </div>
+            </div>
+            <div class="step-item">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <h4>获得奖励</h4>
+                    <p>好友扫码注册成功后，您即可获得推广奖励.</p>
                 </div>
             </div>
         </div>
     </div>
-<?php } ?>
- 
-    <!-- 放大灯箱样式：使用 top/left/right/bottom 与 absolute+transform 居中，兼容低版本安卓浏览器（不依赖 flexbox/inset） -->
-    <style>
-    .lt-lightbox{
-        display:none;
-        position:fixed;
-        top:0; left:0; right:0; bottom:0;
-        width:100%; height:100%;
-        background:#000;
-        background:rgba(0,0,0,0.92);
-        z-index:99999;
-    }
-    .lt-lightbox.active{ display:block; }
-    .lt-lightbox-header{
-        position:absolute; top:0; left:0; right:0;
-        height:56px; z-index:3;
-    }
-    .lt-lightbox-counter{
-        position:absolute; left:16px; top:14px;
-        color:#fff; font-size:15px;
-        background:rgba(0,0,0,0.4);
-        padding:4px 12px; border-radius:20px;
-    }
-    .lt-lightbox-close{
-        position:absolute; right:12px; top:10px;
-        width:40px; height:40px; padding:0;
-        border:0; border-radius:50%;
-        background:rgba(255,255,255,0.15);
-        color:#fff; cursor:pointer;
-        text-align:center; line-height:40px;
-    }
-    .lt-lightbox-close svg{ width:22px; height:22px; vertical-align:middle; }
-    .lt-lightbox-stage{
-        position:absolute;
-        top:0; left:0; right:0; bottom:0;
-        width:100%; height:100%;
-        text-align:center;
-    }
-    .lt-stage-media{
-        position:absolute;
-        top:50%; left:50%;
-        margin:0;
-        -webkit-transform:translate(-50%,-50%);
-        -ms-transform:translate(-50%,-50%);
-        transform:translate(-50%,-50%);
-        max-width:100%;
-        max-height:90%;
-        display:block;
-    }
-    .lt-lightbox-nav{
-        position:absolute; top:50%;
-        margin-top:-22px;
-        width:44px; height:44px; padding:0;
-        border:0; border-radius:50%;
-        background:rgba(255,255,255,0.15);
-        color:#fff; cursor:pointer;
-        text-align:center; line-height:44px;
-        z-index:3;
-    }
-    .lt-lightbox-nav svg{ width:24px; height:24px; vertical-align:middle; }
-    .lt-prev{ left:12px; }
-    .lt-next{ right:12px; }
-    </style>
 
-    <div class="lt-lightbox" id="ltLightbox" aria-hidden="true">
-        <div class="lt-lightbox-header">
-            <span class="lt-lightbox-counter"><span id="ltCurrent">1</span> / <span id="ltTotal">0</span></span>
-            <button type="button" class="lt-lightbox-close" id="ltClose" aria-label="关闭">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
-            </button>
+    <!-- 保存提示弹窗：展示带二维码的合成图，长按即可保存 -->
+    <div class="save-modal" id="saveModal">
+        <div class="save-modal-content">
+            <h3 class="save-modal-title">保存推广海报</h3>
+            <p class="save-modal-text">长按下图，选择“保存图片到相册”即可</p>
+            <div class="save-preview-wrap">
+                <div class="save-preview-loading" id="savePreviewLoading">海报生成中，请稍候...</div>
+                <img class="save-preview-img" id="savePreviewImg" alt="推广海报" style="display:none;">
+            </div>
+            <p class="save-preview-hint" id="savePreviewHint" style="display:none;">↑ 长按上方海报保存到相册</p>
+            <button class="save-modal-btn" id="saveDownloadBtn" style="display:none;">下载海报</button>
+            <button class="save-modal-btn secondary" onclick="closeSaveModal()">关闭</button>
         </div>
-        <div class="lt-lightbox-stage" id="ltStage"></div>
-        <button type="button" class="lt-lightbox-nav lt-prev" id="ltPrev" aria-label="上一张">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"/></svg>
-        </button>
-        <button type="button" class="lt-lightbox-nav lt-next" id="ltNext" aria-label="下一张">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"/></svg>
-        </button>
     </div>
 
-<script>
-var hasViewedContact = false;
-// 媒体列表（图片在前，视频在后）
-var ltMedia = <?php echo json_encode($mediaList, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE); ?>;
-// 全局函数，供图片 onclick 调用（ES5 写法，兼容低版本安卓浏览器）
-function ltOpenLightbox(i){}
-(function(){
-    var gallery = document.getElementById('ltGallery');
-    var lightbox = document.getElementById('ltLightbox');
-    if (!lightbox) return;
-    var stage = document.getElementById('ltStage');
-    var curEl = document.getElementById('ltCurrent');
-    var totalEl = document.getElementById('ltTotal');
-    var prevBtn = document.getElementById('ltPrev');
-    var nextBtn = document.getElementById('ltNext');
-    var closeBtn = document.getElementById('ltClose');
-    var idx = 0;
+    <script>
+        let currentSlide = 0;
+        const totalSlides = 5;
+        let touchStartX = 0;
+        let touchEndX = 0;
 
-    totalEl.textContent = ltMedia.length;
-
-    function pauseStageVideo(){
-        var v = stage.getElementsByTagName('video')[0];
-        if (v) { try { v.pause(); } catch(e){} }
-    }
-
-    function render(){
-        var m = ltMedia[idx];
-        if (!m) return;
-        pauseStageVideo();
-        stage.innerHTML = '';
-        var el;
-        if (m.type === 'video') {
-            el = document.createElement('video');
-            el.src = m.url;
-            el.controls = true;
-            el.autoplay = true;
-            el.setAttribute('playsinline', '');
-            el.setAttribute('webkit-playsinline', '');
-        } else {
-            el = document.createElement('img');
-            el.src = m.url;
-            el.alt = '图片';
+        // 初始化轮播点
+        function initDots() {
+            const dotsContainer = document.getElementById('carouselDots');
+            for (let i = 0; i < totalSlides; i++) {
+                const dot = document.createElement('div');
+                dot.className = 'dot' + (i === 0 ? ' active' : '');
+                dot.textContent = (i + 1);
+                dot.onclick = () => goToSlide(i);
+                dotsContainer.appendChild(dot);
+            }
         }
-        el.className = 'lt-stage-media';
-        stage.appendChild(el);
-        curEl.textContent = idx + 1;
-        var multi = ltMedia.length > 1;
-        prevBtn.style.display = multi ? 'block' : 'none';
-        nextBtn.style.display = multi ? 'block' : 'none';
-    }
 
-    // 覆盖占位函数为真实实现
-    ltOpenLightbox = function(i){
-        if (!ltMedia.length) return;
-        idx = i || 0;
-        render();
-        lightbox.className = lightbox.className.indexOf('active') === -1 ? lightbox.className + ' active' : lightbox.className;
-        lightbox.setAttribute('aria-hidden', 'false');
-        document.body.style.overflow = 'hidden';
-    };
-    window.ltOpenLightbox = ltOpenLightbox;
-
-    function closeBox(){
-        pauseStageVideo();
-        stage.innerHTML = '';
-        lightbox.className = lightbox.className.replace(/\s*active/g, '');
-        lightbox.setAttribute('aria-hidden', 'true');
-        document.body.style.overflow = '';
-    }
-    function prev(){ idx = (idx - 1 + ltMedia.length) % ltMedia.length; render(); }
-    function next(){ idx = (idx + 1) % ltMedia.length; render(); }
-
-    closeBtn.onclick = closeBox;
-    prevBtn.onclick = function(e){ if (e) { e.cancelBubble = true; if (e.stopPropagation) e.stopPropagation(); } prev(); };
-    nextBtn.onclick = function(e){ if (e) { e.cancelBubble = true; if (e.stopPropagation) e.stopPropagation(); } next(); };
-    lightbox.onclick = function(e){ var t = e.target || e.srcElement; if (t === lightbox || t === stage) closeBox(); };
-
-    // 灯箱内左右滑动翻页
-    var sx = 0, sy = 0, swiping = false;
-    stage.addEventListener('touchstart', function(e){ var t = e.touches[0]; sx = t.clientX; sy = t.clientY; swiping = true; }, false);
-    stage.addEventListener('touchend', function(e){
-        if (!swiping) return; swiping = false;
-        var t = e.changedTouches[0];
-        var dx = t.clientX - sx, dy = t.clientY - sy;
-        if (ltMedia.length > 1 && Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
-            if (dx < 0) next(); else prev();
+        // 更新轮播显示
+        function updateCarousel() {
+            const container = document.getElementById('posterContainer');
+            container.style.transform = `translateX(-${currentSlide * 100}%)`;
+            
+            // 更新点指示器
+            document.querySelectorAll('.dot').forEach((dot, index) => {
+                dot.classList.toggle('active', index === currentSlide);
+            });
         }
-    }, false);
-})();
 
-// 垂直相册懒加载：兼容低版本安卓浏览器，不依赖 IntersectionObserver
-(function(){
-    function getLazyEls(){
-        var els = document.querySelectorAll('.lt-vgallery .lazy-media');
-        return Array.prototype.slice.call(els);
-    }
-    function loadEl(el){
-        var src = el.getAttribute('data-src');
-        if (!src) return;
-        if (el.tagName.toLowerCase() === 'video') {
-            el.setAttribute('preload', 'metadata');
-            el.src = src;
-            el.load && el.load();
-        } else {
-            el.onload = function(){ el.className += ' lazy-loaded'; };
-            el.src = src;
+        // 上一张
+        function prevSlide() {
+            if (window.slideChanging) return;
+            window.slideChanging = true;
+            
+            currentSlide = (currentSlide - 1 + totalSlides) % totalSlides;
+            updateCarousel();
+            
+            setTimeout(() => {
+                window.slideChanging = false;
+            }, 300);
         }
-        el.removeAttribute('data-src');
-    }
-    function inViewport(el){
-        var rect = el.getBoundingClientRect();
-        var h = window.innerHeight || document.documentElement.clientHeight;
-        return rect.top < h + 300 && rect.bottom > -300;
-    }
-    function lazyLoad(){
-        var els = getLazyEls();
-        if (els.length === 0) return;
-        for (var i = 0; i < els.length; i++) {
-            if (inViewport(els[i])) loadEl(els[i]);
+
+        // 下一张
+        function nextSlide() {
+            if (window.slideChanging) return;
+            window.slideChanging = true;
+            
+            currentSlide = (currentSlide + 1) % totalSlides;
+            updateCarousel();
+            
+            setTimeout(() => {
+                window.slideChanging = false;
+            }, 300);
         }
-    }
-    function loadAll(){
-        var els = getLazyEls();
-        for (var i = 0; i < els.length; i++) loadEl(els[i]);
-    }
-    function init(){
-        if (!('getBoundingClientRect' in document.documentElement)) { loadAll(); return; }
-        lazyLoad();
-        var ticking = false;
-        function onScroll(){
-            if (ticking) return;
-            ticking = true;
-            setTimeout(function(){ lazyLoad(); ticking = false; }, 150);
+
+        // 跳转到指定slide
+        function goToSlide(index) {
+            currentSlide = index;
+            updateCarousel();
         }
-        if (window.addEventListener) {
-            window.addEventListener('scroll', onScroll, false);
-            window.addEventListener('resize', onScroll, false);
-        } else if (window.attachEvent) {
-            window.attachEvent('onscroll', onScroll);
-            window.attachEvent('onresize', onScroll);
-        }
-    }
-    if (document.readyState === 'complete' || document.readyState === 'interactive') {
-        init();
-    } else if (document.addEventListener) {
-        document.addEventListener('DOMContentLoaded', init, false);
-    } else {
-        window.onload = init;
-    }
-})();
-</script>
 
+        // 触摸事件处理
+        const posterWrapper = document.getElementById('posterWrapper');
+        let touchStartY = 0;
+        let touchMoved = false;
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-var favoriteBtn = document.getElementById('favoriteBtn');
-var favoriteText = document.getElementById('favoriteText');
-var iscollectInput = document.getElementById('iscollect');
+        posterWrapper.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+            touchMoved = false;
+        });
 
-if (!favoriteBtn || !favoriteText || !iscollectInput) {
-    return;
-}
+        posterWrapper.addEventListener('touchmove', (e) => {
+            const dx = Math.abs(e.touches[0].clientX - touchStartX);
+            const dy = Math.abs(e.touches[0].clientY - touchStartY);
+            if (dx > 10 || dy > 10) {
+                touchMoved = true;
+            }
+        });
 
-var isFavorited = parseInt(iscollectInput.value) === 1;
+        posterWrapper.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].clientX;
+            handleSwipe();
+        });
 
-var uids=<?php echo $userData['userId']??0;?>;
-favoriteBtn.addEventListener('click', function() {
-    if (uids<=0) {
-        showInfo('请先登陆，在操作!');
-        window.location.href='/login.html';
-        return;
-    }
-    // updateFavoriteDisplay();
-    sendFavoriteRequest();
-});
+        // 处理滑动
+        function handleSwipe() {
+            const swipeThreshold = 50;
+            const diff = touchStartX - touchEndX;
 
-function updateFavoriteDisplay(idsss) {
-    if (idsss == 1) {
-        favoriteBtn.classList.add('favorited');
-        favoriteIcon.setAttribute('fill', '#ff6b9d');
-            favoriteIcon.setAttribute('stroke', '#ff6b9d');
-        favoriteText.textContent = '已收藏';
-        
-    } else {
-        favoriteBtn.classList.remove('favorited');
-        favoriteIcon.setAttribute('fill', 'none');
-            favoriteIcon.setAttribute('stroke', '#999');
-        favoriteText.textContent = '收藏';
-        
-    }
-}
-
-function sendFavoriteRequest() {
-    var infoId = window.currentInfoId;
-    if (!infoId) {
-        return;
-    }
-
-    // 用 jQuery $.ajax 代替 fetch，兼容所有浏览器
-    $.ajax({
-        url: '/oper/info/user_collections.html',
-        type: 'POST',
-        contentType: 'application/x-www-form-urlencoded;charset=UTF-8',
-        dataType: 'json',
-        data: 'info_id=' + encodeURIComponent(infoId),
-        success: function(result) {
-            if (result.code === 200) {
-                showInfo(result.msg);
-                if (result.msg === '取消收藏成功') {
-                    updateFavoriteDisplay(0);
+            if (Math.abs(diff) > swipeThreshold) {
+                if (diff > 0) {
+                    nextSlide();
                 } else {
-                    updateFavoriteDisplay(1);
+                    prevSlide();
                 }
             }
-        },
-        error: function() {
-            console.log('[v0] 收藏请求失败');
         }
-    });
-}
 
-// 查看联系方式功能
-var viewedContactBtn = document.getElementById('viewedContactBtn');
-var pointsContactBtn = document.getElementById('pointsContactBtn');
-var memberContactBtn = document.getElementById('memberContactBtn');
-var isMoneySj = <?php echo $is_money_sj; ?>;
-if (viewedContactBtn) {
-    viewedContactBtn.addEventListener('click', function() { sendContactRequest(3); });
-}
+        // 点击海报：左右两侧切换，中间区域打开保存预览
+        posterWrapper.addEventListener('click', (e) => {
+            // 刚刚发生过滑动则忽略点击
+            if (touchMoved) return;
 
-if (pointsContactBtn) {
-    pointsContactBtn.addEventListener('click', function() { sendContactRequest(2); });
-}
+            const rect = posterWrapper.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const width = rect.width;
 
-if (memberContactBtn) {
-
-    memberContactBtn.addEventListener('click', function() {
-
-        // Check if payment is required due to exhausted free attempts
-        if (isMoneySj === 1) {
-            // Prompt for payment
-            if (confirm('今日免费解锁次数已用完，是否支付10元继续解锁？')) {
-                // User confirms, send request for paid unlock (type 4)
-                sendContactRequest(4);
-            }
-            // If user cancels, do nothing
-        } else {
-            // Normal member unlock (type 1)
-            sendContactRequest(1);
-        }
-    });
-
-}
-
-
-
-function sendContactRequest(type) {
-    var infoId = window.currentInfoId;
-    if (!infoId) {
-        return;
-    }
-
-    var uids=<?php echo $userData['userId'] ?? 0; ?>;
-    if (uids<=0) {
-        alert('请先登陆，在操作!');
-        window.location.href='/login.html';
-        return;
-    }    
-
-    // 用 jQuery $.ajax 代替 fetch，兼容所有浏览器
-    $.ajax({
-        url: '/oper/info/seeinfos.html',
-        type: 'POST',
-        contentType: 'application/x-www-form-urlencoded;charset=UTF-8',
-        dataType: 'json',
-        data: 'info_id=' + encodeURIComponent(infoId) + '&type=' + type,
-        success: function(data) {
-            if (data.code === 200) {
-                updateContactModal(data.data);
-                openContactModal();
-                if (type != 3) {
-                    showSuccess(data.msg || '操作成功！', '操作成功');
-                    document.getElementById('vip-see-message').style.display = 'flex';
-                    document.getElementById('vip-see-messageno').style.display = 'none';
-                }
-                // 隐藏积分和会员查看按钮，显示已查看按钮
-                if (pointsContactBtn) pointsContactBtn.style.display = 'none';
-                if (memberContactBtn) memberContactBtn.style.display = 'none';
-                if (viewedContactBtn) viewedContactBtn.style.display = 'block';
+            if (clickX < width / 4) {
+                prevSlide();
+            } else if (clickX > width * 3 / 4) {
+                nextSlide();
             } else {
-                showInfo(data.msg);
+                // 中间区域：生成合成图并打开保存弹窗
+                saveMergedImage(currentSlide);
             }
-        },
-        error: function() {
-            console.log('[v0] 查看联系方式请求失败');
-            alert('网络请求失败，请稍后重试');
+        });
+
+        // 显示保存提示弹窗
+        function showSaveModal() {
+            document.getElementById('saveModal').classList.add('show');
+            document.body.style.overflow = 'hidden';
         }
-    });
-}
 
-function updateContactModal(contact) {
-    // 更新手机
-    var mobileElement = document.getElementById('modal-mobile');
-    if (mobileElement) {
-        mobileElement.textContent = contact.mobile || '未填写';
-    }
+        // 关闭保存提示弹窗
+        function closeSaveModal() {
+            document.getElementById('saveModal').classList.remove('show');
+            document.body.style.overflow = '';
+        }
 
-    // 更新微信
-    var weixinElement = document.getElementById('modal-weixin');
-    if (weixinElement) {
-        weixinElement.textContent = contact.weixin || '未填写';
-    }
-
-    // 更新QQ
-    var qqElement = document.getElementById('modal-qq');
-    if (qqElement) {
-        qqElement.textContent = contact.qq || '未填写';
-    }
-
-    // 更新邮箱
-    var yuliElement = document.getElementById('modal-yuli');
-    if (yuliElement) {
-        yuliElement.textContent = contact.yuli || '未填写';
-    }
-
-    // 更新飞信
-    var feijiElement = document.getElementById('modal-telegram');
-    if (feijiElement) {
-        feijiElement.textContent = contact.feiji || '未填写';
-    }
-}
-
-function openContactModal() {
-    var contactModal = document.getElementById('contactModal');
-    if (contactModal) {
-        contactModal.classList.remove('hidden');
-        document.body.classList.add('modal-open');
-    }
-}
-});
-
-function refreshCaptcha() {
-    document.getElementById('captchaImg').src = '/lib/yzmcode.php?r=' + Math.random();
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    // 验证码不在页面首次加载时请求，改为打开举报弹窗时再加载（见 openReportModal）
-
-    // Use the new modal ID and class names
-    var reportModal = document.getElementById('reportModal');
-    var reportBtn = document.getElementById('reportBtn');
-    var closeBtn = document.getElementById('closeReportModal');
-    var reportContent = document.getElementById('reportDescription');
-    var submitBtn = document.getElementById('submitReportBtn');
-    var captchaInput = document.getElementById('captchaCode');
-
-    var closeReportModalsss = document.getElementById('closeReportModalsss');
-
-    if (!reportModal || !reportBtn) {
-        return;
-    }
-
-    function openReportModal() {
-        reportModal.classList.add('show');
-        document.body.style.overflow = 'hidden';
-        refreshCaptcha();
-    }
-
-    function closeReportModal() {
-        reportModal.classList.remove('show');
-        document.body.style.overflow = '';
-        if (reportContent) reportContent.value = '';
-        if (captchaInput) captchaInput.value = '';
-    }
-
-    reportBtn.addEventListener('click', openReportModal);
-
-    if (closeBtn) {
-        closeBtn.addEventListener('click', closeReportModal);
-    }
-    if (closeReportModalsss) {
-        closeReportModalsss.addEventListener('click', closeReportModal);
-    }
-
-    // Close modal by clicking overlay
-    var overlay = reportModal.querySelector('.modal-overlay');
-    if (overlay) {
-        overlay.addEventListener('click', closeReportModal);
-    }
-
-    if (submitBtn) {
-        submitBtn.addEventListener('click', function() {
-            var content = reportContent.value.replace(/^\s+|\s+$/g, '');
-            var captcha = captchaInput.value.replace(/^\s+|\s+$/g, '');
-            var infoId = window.currentInfoId;
-
-            if (!content) {
-                showInfo('请填写举报内容');
-                return;
+        // 点击弹窗外部关闭
+        document.getElementById('saveModal').addEventListener('click', (e) => {
+            if (e.target.id === 'saveModal') {
+                closeSaveModal();
             }
+        });
 
-            if (!captcha) {
-                showInfo('请输入验证码');
-                return;
+        // 返回
+        function goBack() {
+            window.history.back();
+        }
+
+        // 生成二维码函数
+        function generateQRCode(element, url) {
+            // 创建二维码
+            const typeNumber = 0;
+            const errorCorrectionLevel = 'H';
+            const qr = qrcode(typeNumber, errorCorrectionLevel);
+            qr.addData(url);
+            qr.make();
+            
+            // 创建二维码图像元素
+            const qrImg = qr.createImgTag(4, 0);
+            element.innerHTML = qrImg;
+            
+            // 设置图片样式使其填满容器
+            const img = element.querySelector('img');
+            if (img) {
+                img.style.width = '100%';
+                img.style.height = '100%';
+                img.style.borderRadius = '8px';
             }
+        }
+        
+        // 合成图缓存，避免重复生成
+        const mergedCache = {};
 
-            if (!infoId) {
-                showInfo('无法获取信息');
-                return;
-            }
+        // 合并图片和二维码为一张图
+        function mergeImageWithQR(posterImage, qrElement, callback, onError) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
 
-            var uids=<?php echo $userData['userId'] ?? 0; ?>;
-            if (uids<=0) {
-                alert('请先登陆，在操作!');
-                window.location.href='/login.html';
-                return;
-            }    
+            // 海报图与本站同源，无需设置 crossOrigin（设置反而可能在部分 WebView 触发问题）
+            const img = new Image();
 
-            // 用 jQuery $.ajax 代替 fetch，兼容所有浏览器
-            $.ajax({
-                url: '/oper/info/inforeport.html',
-                type: 'POST',
-                contentType: 'application/x-www-form-urlencoded;charset=UTF-8',
-                dataType: 'text',
-                data: 'info_id=' + encodeURIComponent(infoId) + '&jb_msg=' + encodeURIComponent(content) + '&captcha=' + encodeURIComponent(captcha),
-                success: function(data) {
-                    try {
-                        var result = JSON.parse(data);
-                        if (result.code === 200 || result.success) {
-                            showSuccess(result.msg || '举报成功');
-                            closeReportModal();
-                        } else {
-                            showError(result.msg || '举报失败，请稍后重试');
-                            refreshCaptcha(); // Refresh captcha if submission fails but not network error
-                        }
-                    } catch (e) {
-                        // If response is not JSON, treat it as a success message
-                        showSuccess(data || '举报成功');
-                        closeReportModal();
+            img.onload = function() {
+                // 用图片的真实像素尺寸，保证清晰度
+                const w = img.naturalWidth || img.width;
+                const h = img.naturalHeight || img.height;
+                canvas.width = w;
+                canvas.height = h;
+
+                // 绘制海报图片
+                ctx.drawImage(img, 0, 0, w, h);
+
+                // 二维码尺寸按海报宽度自适应（约占 24%）
+                const qrSize = Math.round(w * 0.24);
+                const margin = Math.round(w * 0.025);
+                const qrX = w - qrSize - margin;
+                const qrY = h - qrSize - margin;
+                const pad = Math.round(qrSize * 0.06);
+
+                function drawWhiteBoxAndFinish(qrDrawable) {
+                    // 白色圆角背景
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(qrX, qrY, qrSize, qrSize);
+                    if (qrDrawable) {
+                        ctx.drawImage(qrDrawable, qrX + pad, qrY + pad, qrSize - pad * 2, qrSize - pad * 2);
                     }
-                },
-                error: function() {
-                    console.log('[v0] 举报请求失败');
-                    showInfo('举报失败，请稍后重试');
-                    refreshCaptcha(); // Refresh captcha on network error
+                    // 粉色边框
+                    ctx.strokeStyle = '#ff6b9d';
+                    ctx.lineWidth = Math.max(2, Math.round(w * 0.004));
+                    ctx.strokeRect(qrX, qrY, qrSize, qrSize);
+
+                    try {
+                        callback(canvas.toDataURL('image/png'));
+                    } catch (err) {
+                        if (onError) onError(err);
+                    }
                 }
+
+                const qrImg = qrElement ? qrElement.querySelector('img') : null;
+                if (qrImg && qrImg.src) {
+                    const tempQrImg = new Image();
+                    tempQrImg.onload = function() { drawWhiteBoxAndFinish(tempQrImg); };
+                    tempQrImg.onerror = function() { drawWhiteBoxAndFinish(null); };
+                    tempQrImg.src = qrImg.src;
+                } else {
+                    drawWhiteBoxAndFinish(null);
+                }
+            };
+
+            img.onerror = function() {
+                if (onError) onError(new Error('海报图片加载失败'));
+            };
+
+            img.src = posterImage.src;
+        }
+
+        // 生成合成图并在弹窗中展示，供用户长按保存
+        function saveMergedImage(slideIndex) {
+            const slides = document.querySelectorAll('.poster-slide');
+            if (slideIndex < 0 || slideIndex >= slides.length) return;
+
+            const previewImg = document.getElementById('savePreviewImg');
+            const loading = document.getElementById('savePreviewLoading');
+            const hint = document.getElementById('savePreviewHint');
+            const downloadBtn = document.getElementById('saveDownloadBtn');
+
+            // 先打开弹窗并显示加载态
+            showSaveModal();
+            previewImg.style.display = 'none';
+            hint.style.display = 'none';
+            downloadBtn.style.display = 'none';
+            loading.style.display = 'block';
+            loading.textContent = '海报生成中，请稍候...';
+
+            // 命中缓存直接展示
+            if (mergedCache[slideIndex]) {
+                showPreview(mergedCache[slideIndex], slideIndex);
+                return;
+            }
+
+            const slide = slides[slideIndex];
+            const posterImage = slide.querySelector('.poster-image');
+            const qrElement = slide.querySelector('.qr-placeholder');
+
+            mergeImageWithQR(posterImage, qrElement, function(mergedImageUrl) {
+                mergedCache[slideIndex] = mergedImageUrl;
+                showPreview(mergedImageUrl, slideIndex);
+            }, function() {
+                loading.textContent = '海报生成失败，请稍后重试';
+            });
+        }
+
+        // 在弹窗中展示合成图
+        function showPreview(dataUrl, slideIndex) {
+            const previewImg = document.getElementById('savePreviewImg');
+            const loading = document.getElementById('savePreviewLoading');
+            const hint = document.getElementById('savePreviewHint');
+            const downloadBtn = document.getElementById('saveDownloadBtn');
+
+            previewImg.src = dataUrl;
+            previewImg.style.display = 'block';
+            loading.style.display = 'none';
+            hint.style.display = 'block';
+            downloadBtn.style.display = 'block';
+
+            // 下载按钮兜底（部分浏览器支持直接下载）
+            downloadBtn.onclick = function() {
+                const link = document.createElement('a');
+                link.href = dataUrl;
+                link.download = 'promotion-poster-' + (slideIndex + 1) + '.png';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            };
+        }
+        
+        // 页面加载时初始化
+        window.addEventListener('DOMContentLoaded', () => {
+            initDots();
+            
+            // 获取所有的qr-placeholder���素并生成二维码
+            const qrPlaceholders = document.querySelectorAll('.qr-placeholder');
+            const url = '<?php echo $rk_url; ?>';
+            
+            qrPlaceholders.forEach(placeholder => {
+                generateQRCode(placeholder, url);
             });
         });
-    }
-});
-
-</script>
-
-<script src="/js/copy.js"></script>
-<script src="/js/xc.js"></script>
-
-<?php  include_once 'comm/alert_modal.php'; ?>
-    
+    </script>
 </body>
 </html>
