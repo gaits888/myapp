@@ -215,33 +215,7 @@ body{ padding-bottom:0px; }
 </header>
 
     <main class="detail-container">
-        <!-- Main image -->
-        <!-- Added onclick to open album -->
-        <!-- 顶部相册：一次显示一张，左右箭头翻页，点击放大查看 -->
-        <div class="lt-carousel">
-            <div class="lt-gallery" id="ltGallery">
-            <?php foreach ($mediaList as $i => $m): ?>
-                <div class="lt-gallery-item" onclick="ltOpenLightbox(<?php echo $i; ?>)">
-                <?php if ($m['type'] === 'image'): ?>
-                    <img class="lt-gallery-media" src="<?php echo $m['url']; ?>" loading="lazy" alt="图片<?php echo $i+1; ?>">
-                <?php else: ?>
-                    <video class="lt-gallery-media" src="<?php echo $m['url']; ?>#t=0.5" preload="metadata" muted playsinline></video>
-                    <span class="lt-play-badge"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="8 5 19 12 8 19 8 5"></polygon></svg></span>
-                <?php endif; ?>
-                </div>
-            <?php endforeach; ?>
-            <?php if (empty($mediaList)): ?>
-                <div class="lt-gallery-item"><img class="lt-gallery-media" src="<?php echo $infos['pic']??''; ?>" alt="图片"></div>
-            <?php endif; ?>
-            </div>
-            <button type="button" class="lt-car-nav lt-car-prev" id="ltCarPrev" aria-label="上一张">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"/></svg>
-            </button>
-            <button type="button" class="lt-car-nav lt-car-next" id="ltCarNext" aria-label="下一张">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"/></svg>
-            </button>
-            <div class="lt-car-counter"><span id="ltCarCurrent">1</span> / <span id="ltCarTotal">0</span></div>
-        </div>
+        <!-- 相册已移至"详细介绍"文字下方，垂直逐张显示 -->
         <!-- 原主图容器隐藏保留，避免改动超长图标 SVG -->
         <div class="lt-gallery-old" style="display:none;">
             
@@ -324,6 +298,22 @@ body{ padding-bottom:0px; }
             <div class="detail-desc-content">
                 <?php echo $infos['content']??''; ?>
             </div>
+
+            <!-- 相册：文字下方逐张全部显示，懒加载，点击放大 -->
+            <?php if (!empty($mediaList)): ?>
+            <div class="lt-vgallery" id="ltGallery">
+                <?php foreach ($mediaList as $i => $m): ?>
+                <div class="lt-vitem" onclick="ltOpenLightbox(<?php echo $i; ?>)">
+                    <?php if ($m['type'] === 'image'): ?>
+                        <img class="lt-vmedia lazy-media" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" data-src="<?php echo $m['url']; ?>" alt="图片<?php echo $i+1; ?>">
+                    <?php else: ?>
+                        <video class="lt-vmedia lazy-media" data-src="<?php echo $m['url']; ?>#t=0.5" preload="none" muted playsinline></video>
+                        <span class="lt-play-badge"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="8 5 19 12 8 19 8 5"></polygon></svg></span>
+                    <?php endif; ?>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
         </div>
 <?php if (!isset($infos['isopen']) ||  $infos['isopen'] ==0){ ?>
         <!-- Contact section -->
@@ -573,62 +563,38 @@ body{ padding-bottom:0px; }
         </div>
     </div>
 <?php } ?>
-    <!-- 顶部相册样式（图片+视频左右滑动）与放大灯箱样式 -->
+    <!-- 详情页相册样式（垂直逐张显示，懒加载）与放大灯箱样式 -->
     <style>
-    .lt-carousel{
-        position:relative;
+    /* 垂直相册：文字下方逐张全部显示 */
+    .lt-vgallery{
+        display:block;
         width:100%;
-        background:#000;
-        overflow:hidden;
+        margin-top:14px;
     }
-    .lt-gallery{
-        display:flex;
-        overflow-x:auto;
-        overflow-y:hidden;
-        scroll-snap-type:x mandatory;
-        -webkit-overflow-scrolling:touch;
-        margin:0;
-        scrollbar-width:none;
-    }
-    .lt-gallery::-webkit-scrollbar{display:none;}
-    .lt-gallery-item{
+    .lt-vitem{
         position:relative;
-        flex:0 0 100%;
+        display:block;
         width:100%;
-        height:75vw;
-        max-height:480px;
+        margin-bottom:10px;
+        border-radius:10px;
         overflow:hidden;
         cursor:pointer;
-        scroll-snap-align:center;
-        background:#000;
+        background:#f2f2f2;
+        min-height:120px;
     }
-    .lt-gallery-media{
-        width:100%;
-        height:100%;
-        object-fit:cover;
+    .lt-vmedia{
         display:block;
+        width:100%;
+        height:auto;
+        border:0;
     }
-    /* 轮播翻页箭头 */
-    .lt-car-nav{
-        position:absolute;top:50%;transform:translateY(-50%);
-        width:40px;height:40px;border:none;border-radius:50%;
-        background:rgba(0,0,0,0.35);color:#fff;cursor:pointer;
-        display:flex;align-items:center;justify-content:center;
-        z-index:3;transition:background .2s ease;
+    .lt-vmedia.lazy-loaded{
+        animation:ltFadeIn 0.3s ease;
     }
-    .lt-car-nav:active{background:rgba(0,0,0,0.6);}
-    .lt-car-nav svg{width:22px;height:22px;}
-    .lt-car-prev{left:10px;}
-    .lt-car-next{right:10px;}
-    .lt-car-nav.lt-hide{display:none;}
-    /* 计数器 */
-    .lt-car-counter{
-        position:absolute;bottom:12px;right:12px;
-        background:rgba(0,0,0,0.5);color:#fff;
-        padding:3px 11px;border-radius:20px;
-        font-size:13px;z-index:3;
+    @keyframes ltFadeIn{
+        from{opacity:0;}
+        to{opacity:1;}
     }
-    .lt-car-counter.lt-hide{display:none;}
     .lt-play-badge{
         position:absolute;top:50%;left:50%;
         transform:translate(-50%,-50%);
@@ -794,47 +760,65 @@ const ltMedia = <?php echo json_encode($mediaList, JSON_UNESCAPED_SLASHES | JSON
     }, {passive:true});
 })();
 
-// 顶部相册轮播：一次显示一张，左右箭头翻页
+// 垂直相册懒加载：兼容低版本安卓浏览器，不依赖 IntersectionObserver
 (function(){
-    const gallery = document.getElementById('ltGallery');
-    if (!gallery) return;
-    const items = gallery.querySelectorAll('.lt-gallery-item');
-    const prevBtn = document.getElementById('ltCarPrev');
-    const nextBtn = document.getElementById('ltCarNext');
-    const curEl = document.getElementById('ltCarCurrent');
-    const totalEl = document.getElementById('ltCarTotal');
-    const counter = document.querySelector('.lt-car-counter');
-    const total = items.length;
-    let cur = 0;
-
-    if (totalEl) totalEl.textContent = total;
-
-    // 仅一张时隐藏箭头与计数器
-    if (total <= 1) {
-        if (prevBtn) prevBtn.classList.add('lt-hide');
-        if (nextBtn) nextBtn.classList.add('lt-hide');
-        if (counter) counter.classList.add('lt-hide');
-        return;
+    function getLazyEls(){
+        var els = document.querySelectorAll('.lt-vgallery .lazy-media');
+        return Array.prototype.slice.call(els);
     }
-
-    function goTo(i){
-        cur = Math.max(0, Math.min(total - 1, i));
-        gallery.scrollTo({ left: cur * gallery.clientWidth, behavior: 'smooth' });
-        if (curEl) curEl.textContent = cur + 1;
+    function loadEl(el){
+        var src = el.getAttribute('data-src');
+        if (!src) return;
+        if (el.tagName.toLowerCase() === 'video') {
+            el.setAttribute('preload', 'metadata');
+            el.src = src;
+            el.load && el.load();
+        } else {
+            el.onload = function(){ el.className += ' lazy-loaded'; };
+            el.src = src;
+        }
+        el.removeAttribute('data-src');
     }
-
-    prevBtn.addEventListener('click', function(e){ e.stopPropagation(); goTo(cur - 1); });
-    nextBtn.addEventListener('click', function(e){ e.stopPropagation(); goTo(cur + 1); });
-
-    // 用户手动滑动时同步当前页码
-    let scrollTimer;
-    gallery.addEventListener('scroll', function(){
-        clearTimeout(scrollTimer);
-        scrollTimer = setTimeout(function(){
-            const i = Math.round(gallery.scrollLeft / gallery.clientWidth);
-            if (i !== cur) { cur = i; if (curEl) curEl.textContent = cur + 1; }
-        }, 80);
-    }, {passive:true});
+    function inViewport(el){
+        var rect = el.getBoundingClientRect();
+        var h = window.innerHeight || document.documentElement.clientHeight;
+        return rect.top < h + 300 && rect.bottom > -300;
+    }
+    function lazyLoad(){
+        var els = getLazyEls();
+        if (els.length === 0) return;
+        for (var i = 0; i < els.length; i++) {
+            if (inViewport(els[i])) loadEl(els[i]);
+        }
+    }
+    function loadAll(){
+        var els = getLazyEls();
+        for (var i = 0; i < els.length; i++) loadEl(els[i]);
+    }
+    function init(){
+        if (!('getBoundingClientRect' in document.documentElement)) { loadAll(); return; }
+        lazyLoad();
+        var ticking = false;
+        function onScroll(){
+            if (ticking) return;
+            ticking = true;
+            setTimeout(function(){ lazyLoad(); ticking = false; }, 150);
+        }
+        if (window.addEventListener) {
+            window.addEventListener('scroll', onScroll, false);
+            window.addEventListener('resize', onScroll, false);
+        } else if (window.attachEvent) {
+            window.attachEvent('onscroll', onScroll);
+            window.attachEvent('onresize', onScroll);
+        }
+    }
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        init();
+    } else if (document.addEventListener) {
+        document.addEventListener('DOMContentLoaded', init, false);
+    } else {
+        window.onload = init;
+    }
 })();
 </script>
 
