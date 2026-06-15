@@ -180,7 +180,7 @@ $description=$infos['content'].','.$cityname.$typename;
 <meta name="description" content="<?php echo $description; ?>">
 <link href="/favicon.ico" rel="shortcut icon"/>
 <link href="/css/header.css" type="text/css" rel="stylesheet" media="all" />
-<link href="/css/info.css?t=123.3678189" type="text/css" rel="stylesheet" media="all" />
+<link href="/css/info.css?t=123.136781891" type="text/css" rel="stylesheet" media="all" />
 <link href="/css/footer.css?t=123.676" type="text/css" rel="stylesheet" media="all" />
 <script src="/js/jquery-3.6.0.min.js"></script>
 <script src="/js/jquery.lazyload.min.js"></script>
@@ -564,90 +564,7 @@ body{ padding-bottom:0px; }
         </div>
     </div>
 <?php } ?>
-    <!-- 详情页相册样式（垂直逐张显示，懒加载）与放大灯箱样式 -->
-    <style>
-    /* 垂直相册：文字下方逐张全部显示 */
-    .lt-vgallery{
-        display:block;
-        width:100%;
-        margin-top:14px;
-    }
-    .lt-vitem{
-        position:relative;
-        display:block;
-        width:100%;
-        margin-bottom:10px;
-        border-radius:10px;
-        overflow:hidden;
-        cursor:pointer;
-        background:#f2f2f2;
-        min-height:120px;
-    }
-    .lt-vmedia{
-        display:block;
-        width:100%;
-        height:auto;
-        border:0;
-    }
-    .lt-vmedia.lazy-loaded{
-        animation:ltFadeIn 0.3s ease;
-    }
-    @keyframes ltFadeIn{
-        from{opacity:0;}
-        to{opacity:1;}
-    }
-    .lt-play-badge{
-        position:absolute;top:50%;left:50%;
-        transform:translate(-50%,-50%);
-        width:54px;height:54px;border-radius:50%;
-        background:rgba(0,0,0,0.45);
-        display:flex;align-items:center;justify-content:center;
-        color:#fff;pointer-events:none;
-    }
-    .lt-play-badge svg{width:24px;height:24px;margin-left:3px;}
-
-    .lt-lightbox{
-        position:fixed;inset:0;
-        background:rgba(0,0,0,0.92);
-        z-index:9999;
-        display:none;
-        align-items:center;justify-content:center;
-    }
-    .lt-lightbox.active{display:flex;}
-    .lt-lightbox-header{
-        position:absolute;top:0;left:0;right:0;
-        display:flex;align-items:center;justify-content:space-between;
-        padding:16px;z-index:2;
-    }
-    .lt-lightbox-counter{font-size:15px;color:#fff;background:rgba(0,0,0,0.4);padding:4px 12px;border-radius:20px;}
-    .lt-lightbox-close{
-        width:40px;height:40px;border:none;border-radius:50%;
-        background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;
-        display:flex;align-items:center;justify-content:center;
-    }
-    .lt-lightbox-close svg{width:22px;height:22px;}
-    .lt-lightbox-stage{
-        width:100%;height:100%;
-        display:flex;align-items:center;justify-content:center;
-        padding:0 12px;
-    }
-    .lt-stage-media{
-        max-width:100%;max-height:86vh;
-        object-fit:contain;border-radius:6px;
-    }
-    .lt-lightbox-nav{
-        position:absolute;top:50%;transform:translateY(-50%);
-        width:44px;height:44px;border:none;border-radius:50%;
-        background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;
-        display:flex;align-items:center;justify-content:center;z-index:2;
-    }
-    .lt-lightbox-nav svg{width:24px;height:24px;}
-    .lt-prev{left:12px;}
-    .lt-next{right:12px;}
-    .lt-lightbox-nav:active{background:rgba(255,255,255,0.3);}
-    </style>
-
-    <!-- 放大查看灯箱：支持图片与视频，左右箭头翻页 -->
+ 
     <div class="lt-lightbox" id="ltLightbox" aria-hidden="true">
         <div class="lt-lightbox-header">
             <span class="lt-lightbox-counter"><span id="ltCurrent">1</span> / <span id="ltTotal">0</span></span>
@@ -839,7 +756,8 @@ let isFavorited = parseInt(iscollectInput.value) === 1;
 const uids=<?php echo $userData['userId']??0;?>;
 favoriteBtn.addEventListener('click', function() {
     if (uids<=0) {
-        showInfo('未登录，请先���录！');
+        showInfo('请先登陆，在操作!');
+        window.location.href='/login.html';
         return;
     }
     // updateFavoriteDisplay();
@@ -865,7 +783,6 @@ function updateFavoriteDisplay(idsss) {
 function sendFavoriteRequest() {
     const infoId = window.currentInfoId;
     if (!infoId) {
-        console.error('Info ID is not available');
         return;
     }
 
@@ -936,10 +853,16 @@ if (memberContactBtn) {
 function sendContactRequest(type) {
     const infoId = window.currentInfoId;
     if (!infoId) {
-        console.error('Info ID is not available');
         return;
     }
 
+    const uids=<?php echo $userData['userId'] ?? 0; ?>;
+    if (uids<=0) {
+        alert('请先登陆，在操作!');
+        window.location.href='/login.html';
+        return;
+    }    
+    
     fetch('/oper/info/seeinfos.html', {
         method: 'POST',
         headers: {
@@ -957,9 +880,8 @@ function sendContactRequest(type) {
         if (data.code === 200) {
             updateContactModal(data.data);
             openContactModal();
-            if(type !=3){
+            if(type!=3){
                     showSuccess(data.msg || '操作成功！', '操作成功');
-                    
                     document.getElementById('vip-see-message').style.display = 'flex';
                     document.getElementById('vip-see-messageno').style.display = 'none';
                 }
@@ -982,35 +904,35 @@ function updateContactModal(contact) {
     const mobileElement = document.getElementById('modal-mobile');
     const copyMobileBtn = document.getElementById('copy-mobile');
     if (mobileElement) {
-        mobileElement.textContent = contact.mobile || '未提供';
+        mobileElement.textContent = contact.mobile || '未填写';
     }
 
     // 更新微信
     const weixinElement = document.getElementById('modal-weixin');
     const copyWeixinBtn = document.getElementById('copy-weixin');
     if (weixinElement) {
-        weixinElement.textContent = contact.weixin || '未提供';
+        weixinElement.textContent = contact.weixin || '未填写';
     }
 
     // 更新QQ
     const qqElement = document.getElementById('modal-qq');
     const copyQqBtn = document.getElementById('copy-qq');
     if (qqElement) {
-        qqElement.textContent = contact.qq || '未提供';
+        qqElement.textContent = contact.qq || '未填写';
     }
 
     // 更新邮箱
     const yuliElement = document.getElementById('modal-yuli');
     const copyYuliBtn = document.getElementById('copy-yuli');
     if (yuliElement) {
-        yuliElement.textContent = contact.yuli || '未提供';
+        yuliElement.textContent = contact.yuli || '未填写';
     }
 
     // 更新飞信
     const feijiElement = document.getElementById('modal-telegram');
     const copyFeijiBtn = document.getElementById('copy-telegram');
     if (feijiElement) {
-        feijiElement.textContent = contact.feiji || '未提供';
+        feijiElement.textContent = contact.feiji || '未填写';
     }
 }
 
@@ -1090,6 +1012,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
+            const uids=<?php echo $userData['userId'] ?? 0; ?>;
+            if (uids<=0) {
+                alert('请先登陆，在操作!');
+                window.location.href='/login.html';
+                return;
+            }    
+            
             fetch('/oper/info/inforeport.html', {
                 method: 'POST',
                 headers: {
