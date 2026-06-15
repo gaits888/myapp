@@ -582,39 +582,36 @@ body{ padding-bottom:0px; }
     </div>
 
 <script>
-const hasViewedContact = false; 
+var hasViewedContact = false;
 // 媒体列表（图片在前，视频在后）
-const ltMedia = <?php echo json_encode($mediaList, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE); ?>;
+var ltMedia = <?php echo json_encode($mediaList, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE); ?>;
+// 全局函数，供图片 onclick 调用（ES5 写法，兼容低版本安卓浏览器）
+function ltOpenLightbox(i){}
 (function(){
-    const gallery = document.getElementById('ltGallery');
-    const lightbox = document.getElementById('ltLightbox');
+    var gallery = document.getElementById('ltGallery');
+    var lightbox = document.getElementById('ltLightbox');
     if (!lightbox) return;
-    const stage = document.getElementById('ltStage');
-    const curEl = document.getElementById('ltCurrent');
-    const totalEl = document.getElementById('ltTotal');
-    const prevBtn = document.getElementById('ltPrev');
-    const nextBtn = document.getElementById('ltNext');
-    const closeBtn = document.getElementById('ltClose');
-    let idx = 0;
+    var stage = document.getElementById('ltStage');
+    var curEl = document.getElementById('ltCurrent');
+    var totalEl = document.getElementById('ltTotal');
+    var prevBtn = document.getElementById('ltPrev');
+    var nextBtn = document.getElementById('ltNext');
+    var closeBtn = document.getElementById('ltClose');
+    var idx = 0;
 
     totalEl.textContent = ltMedia.length;
 
-    // 单个媒体时顶部相册占满整宽
-    if (gallery && ltMedia.length <= 1) {
-        gallery.classList.add('lt-single');
-    }
-
     function pauseStageVideo(){
-        const v = stage.querySelector('video');
+        var v = stage.getElementsByTagName('video')[0];
         if (v) { try { v.pause(); } catch(e){} }
     }
 
     function render(){
-        const m = ltMedia[idx];
+        var m = ltMedia[idx];
         if (!m) return;
         pauseStageVideo();
         stage.innerHTML = '';
-        let el;
+        var el;
         if (m.type === 'video') {
             el = document.createElement('video');
             el.src = m.url;
@@ -630,52 +627,48 @@ const ltMedia = <?php echo json_encode($mediaList, JSON_UNESCAPED_SLASHES | JSON
         el.className = 'lt-stage-media';
         stage.appendChild(el);
         curEl.textContent = idx + 1;
-        const multi = ltMedia.length > 1;
+        var multi = ltMedia.length > 1;
         prevBtn.style.display = multi ? 'flex' : 'none';
         nextBtn.style.display = multi ? 'flex' : 'none';
     }
 
-    window.ltOpenLightbox = function(i){
+    // 覆盖占位函数为真实实现
+    ltOpenLightbox = function(i){
         if (!ltMedia.length) return;
         idx = i || 0;
         render();
-        lightbox.classList.add('active');
+        lightbox.className = lightbox.className.indexOf('active') === -1 ? lightbox.className + ' active' : lightbox.className;
         lightbox.setAttribute('aria-hidden', 'false');
         document.body.style.overflow = 'hidden';
     };
+    window.ltOpenLightbox = ltOpenLightbox;
 
-    function close(){
+    function closeBox(){
         pauseStageVideo();
         stage.innerHTML = '';
-        lightbox.classList.remove('active');
+        lightbox.className = lightbox.className.replace(/\s*active/g, '');
         lightbox.setAttribute('aria-hidden', 'true');
         document.body.style.overflow = '';
     }
     function prev(){ idx = (idx - 1 + ltMedia.length) % ltMedia.length; render(); }
     function next(){ idx = (idx + 1) % ltMedia.length; render(); }
 
-    closeBtn.addEventListener('click', close);
-    prevBtn.addEventListener('click', function(e){ e.stopPropagation(); prev(); });
-    nextBtn.addEventListener('click', function(e){ e.stopPropagation(); next(); });
-    lightbox.addEventListener('click', function(e){ if (e.target === lightbox || e.target === stage) close(); });
-    document.addEventListener('keydown', function(e){
-        if (!lightbox.classList.contains('active')) return;
-        if (e.key === 'Escape') close();
-        else if (e.key === 'ArrowLeft') prev();
-        else if (e.key === 'ArrowRight') next();
-    });
+    closeBtn.onclick = closeBox;
+    prevBtn.onclick = function(e){ if (e) { e.cancelBubble = true; if (e.stopPropagation) e.stopPropagation(); } prev(); };
+    nextBtn.onclick = function(e){ if (e) { e.cancelBubble = true; if (e.stopPropagation) e.stopPropagation(); } next(); };
+    lightbox.onclick = function(e){ var t = e.target || e.srcElement; if (t === lightbox || t === stage) closeBox(); };
 
     // 灯箱内左右滑动翻页
-    let sx = 0, sy = 0, swiping = false;
-    stage.addEventListener('touchstart', function(e){ const t = e.touches[0]; sx = t.clientX; sy = t.clientY; swiping = true; }, {passive:true});
+    var sx = 0, sy = 0, swiping = false;
+    stage.addEventListener('touchstart', function(e){ var t = e.touches[0]; sx = t.clientX; sy = t.clientY; swiping = true; }, false);
     stage.addEventListener('touchend', function(e){
         if (!swiping) return; swiping = false;
-        const t = e.changedTouches[0];
-        const dx = t.clientX - sx, dy = t.clientY - sy;
+        var t = e.changedTouches[0];
+        var dx = t.clientX - sx, dy = t.clientY - sy;
         if (ltMedia.length > 1 && Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
             if (dx < 0) next(); else prev();
         }
-    }, {passive:true});
+    }, false);
 })();
 
 // 垂直相册懒加载：兼容低版本安卓浏览器，不依赖 IntersectionObserver
