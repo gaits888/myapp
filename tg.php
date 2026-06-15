@@ -905,11 +905,20 @@ $rk_url = $rk_url_config.'?inviteCode='.$user_inviteCode;
             const img = new Image();
 
             img.onload = function() {
-                // 用图片的真实像素尺寸，保证清晰度
-                const w = img.naturalWidth || img.width;
-                const h = img.naturalHeight || img.height;
+                // 限制最大宽度，避免低版本安卓 WebView 处理超大图片/超长 dataURL 失败
+                const MAX_W = 1080;
+                let w = img.naturalWidth || img.width;
+                let h = img.naturalHeight || img.height;
+                if (w > MAX_W) {
+                    h = Math.round(h * (MAX_W / w));
+                    w = MAX_W;
+                }
                 canvas.width = w;
                 canvas.height = h;
+
+                // 先铺白底（JPEG 不支持透明，否则透明区域会变黑）
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, w, h);
 
                 // 绘制海报图片
                 ctx.drawImage(img, 0, 0, w, h);
@@ -934,18 +943,16 @@ $rk_url = $rk_url_config.'?inviteCode='.$user_inviteCode;
                     ctx.strokeRect(qrX, qrY, qrSize, qrSize);
 
                     try {
-                        // 优先用 Blob URL（安卓 WebView 对 blob: 的"保存图片"/下载兼容性优于超长 data: URL）
-                        if (canvas.toBlob) {
-                            canvas.toBlob(function(blob) {
-                                if (blob) {
-                                    callback(URL.createObjectURL(blob));
-                                } else {
-                                    callback(canvas.toDataURL('image/png'));
-                                }
-                            }, 'image/png');
-                        } else {
-                            callback(canvas.toDataURL('image/png'));
+                        // 使用 JPEG + dataURL：体积远小于 PNG，且低版本安卓 WebView 原生"保存图片"对
+                        // data:image/jpeg 的支持最好（blob: 在老版本 WebView 的原生保存常常失败）
+                        let out;
+                        try {
+                            out = canvas.toDataURL('image/jpeg', 0.9);
+                        } catch (e1) {
+                            // 极少数环境不支持 jpeg，回退 png
+                            out = canvas.toDataURL('image/png');
                         }
+                        callback(out);
                     } catch (err) {
                         if (onError) onError(err);
                     }
@@ -1022,7 +1029,7 @@ $rk_url = $rk_url_config.'?inviteCode='.$user_inviteCode;
             downloadBtn.onclick = function() {
                 const link = document.createElement('a');
                 link.href = dataUrl;
-                link.download = 'promotion-poster-' + (slideIndex + 1) + '.png';
+                link.download = 'promotion-poster-' + (slideIndex + 1) + '.jpg';
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
