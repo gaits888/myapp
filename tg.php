@@ -452,7 +452,39 @@ $rk_url = $rk_url_config.'?inviteCode='.$user_inviteCode;
             font-size: 14px;
             color: #7f8c8d;
             line-height: 1.6;
-            margin-bottom: 24px;
+            margin-bottom: 16px;
+        }
+
+        /* 合成图预览：用户对这张图长按即可调起系统"保存图片"菜单 */
+        .save-preview-wrap {
+            position: relative;
+            margin-bottom: 16px;
+        }
+
+        .save-preview-img {
+            width: 100%;
+            max-height: 50vh;
+            object-fit: contain;
+            border-radius: 12px;
+            display: block;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+            /* 允许长按调起系统保存菜单 */
+            -webkit-touch-callout: default;
+            -webkit-user-select: auto;
+            user-select: auto;
+        }
+
+        .save-preview-loading {
+            padding: 40px 0;
+            font-size: 14px;
+            color: #ff6b9d;
+        }
+
+        .save-preview-hint {
+            font-size: 13px;
+            color: #ff6b9d;
+            font-weight: 600;
+            margin-bottom: 16px;
         }
 
         .save-modal-btn {
@@ -467,6 +499,13 @@ $rk_url = $rk_url_config.'?inviteCode='.$user_inviteCode;
             cursor: pointer;
             transition: all 0.3s;
             box-shadow: 0 4px 12px rgba(255, 107, 157, 0.3);
+        }
+
+        .save-modal-btn.secondary {
+            background: #f2f2f2;
+            color: #7f8c8d;
+            box-shadow: none;
+            margin-top: 10px;
         }
 
         .save-modal-btn:active {
@@ -592,7 +631,7 @@ $rk_url = $rk_url_config.'?inviteCode='.$user_inviteCode;
                 <svg viewBox="0 0 24 24">
                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
                 </svg>
-                长按上面的海报，可保存图片分享给好友.
+                点击上面的海报，即可生成带二维码的海报并保存分享.
             </div>
         </div>
 
@@ -610,7 +649,7 @@ $rk_url = $rk_url_config.'?inviteCode='.$user_inviteCode;
                 <div class="step-number">2</div>
                 <div class="step-content">
                     <h4>保存分享</h4>
-                    <p>长按海报保存到相册，分享给微信好友或朋友圈.</p>
+                    <p>点击海报生成带二维码的图片，长按保存到相册，分享给微信好友或朋友圈.</p>
                 </div>
             </div>
             <div class="step-item">
@@ -623,17 +662,18 @@ $rk_url = $rk_url_config.'?inviteCode='.$user_inviteCode;
         </div>
     </div>
 
-    <!-- 保存提示弹窗 -->
+    <!-- 保存提示弹窗：展示带二维码的合成图，长按即可保存 -->
     <div class="save-modal" id="saveModal">
         <div class="save-modal-content">
-            <div class="save-modal-icon">
-                <svg viewBox="0 0 24 24">
-                    <path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2v9.67z"/>
-                </svg>
+            <h3 class="save-modal-title">保存推广海报</h3>
+            <p class="save-modal-text">长按下方海报，选择“保存图片”即可保存到相册</p>
+            <div class="save-preview-wrap">
+                <div class="save-preview-loading" id="savePreviewLoading">海报生成中，请稍候...</div>
+                <img class="save-preview-img" id="savePreviewImg" alt="推广海报" style="display:none;">
             </div>
-            <h3 class="save-modal-title">长按保存海报</h3>
-            <p class="save-modal-text">请长按海报图片，在弹出菜单中选择"保存图片"，即可将推广海报保存到相册</p>
-            <button class="save-modal-btn" onclick="closeSaveModal()">我知道了</button>
+            <p class="save-preview-hint" id="savePreviewHint" style="display:none;">↑ 长按上方海报保存到相册</p>
+            <button class="save-modal-btn" id="saveDownloadBtn" style="display:none;">下载海报</button>
+            <button class="save-modal-btn secondary" onclick="closeSaveModal()">关闭</button>
         </div>
     </div>
 
@@ -642,7 +682,6 @@ $rk_url = $rk_url_config.'?inviteCode='.$user_inviteCode;
         const totalSlides = 5;
         let touchStartX = 0;
         let touchEndX = 0;
-        let longPressTimer = null;
 
         // 初始化轮播点
         function initDots() {
@@ -700,31 +739,24 @@ $rk_url = $rk_url_config.'?inviteCode='.$user_inviteCode;
 
         // 触摸事件处理
         const posterWrapper = document.getElementById('posterWrapper');
+        let touchStartY = 0;
+        let touchMoved = false;
 
         posterWrapper.addEventListener('touchstart', (e) => {
             touchStartX = e.touches[0].clientX;
-            
-            // 长按检测
-            longPressTimer = setTimeout(() => {
-                saveMergedImage(currentSlide);
-            }, 800);
+            touchStartY = e.touches[0].clientY;
+            touchMoved = false;
         });
 
         posterWrapper.addEventListener('touchmove', (e) => {
-            // 移动时取消长按
-            if (longPressTimer) {
-                clearTimeout(longPressTimer);
-                longPressTimer = null;
+            const dx = Math.abs(e.touches[0].clientX - touchStartX);
+            const dy = Math.abs(e.touches[0].clientY - touchStartY);
+            if (dx > 10 || dy > 10) {
+                touchMoved = true;
             }
         });
 
         posterWrapper.addEventListener('touchend', (e) => {
-            // 清除长按计时器
-            if (longPressTimer) {
-                clearTimeout(longPressTimer);
-                longPressTimer = null;
-            }
-
             touchEndX = e.changedTouches[0].clientX;
             handleSwipe();
         });
@@ -743,16 +775,22 @@ $rk_url = $rk_url_config.'?inviteCode='.$user_inviteCode;
             }
         }
 
-        // 点击图片左右区域切换
+        // 点击海报：左右两侧切换，中间区域打开保存预览
         posterWrapper.addEventListener('click', (e) => {
+            // 刚刚发生过滑动则忽略点击
+            if (touchMoved) return;
+
             const rect = posterWrapper.getBoundingClientRect();
             const clickX = e.clientX - rect.left;
             const width = rect.width;
 
-            if (clickX < width / 3) {
+            if (clickX < width / 4) {
                 prevSlide();
-            } else if (clickX > width * 2 / 3) {
+            } else if (clickX > width * 3 / 4) {
                 nextSlide();
+            } else {
+                // 中间区域：生成合成图并打开保存弹窗
+                saveMergedImage(currentSlide);
             }
         });
 
@@ -802,82 +840,129 @@ $rk_url = $rk_url_config.'?inviteCode='.$user_inviteCode;
             }
         }
         
+        // 合成图缓存，避免重复生成
+        const mergedCache = {};
+
         // 合并图片和二维码为一张图
-        function mergeImageWithQR(posterImage, qrElement, callback) {
-            // 创建canvas元素
+        function mergeImageWithQR(posterImage, qrElement, callback, onError) {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-            
-            // 加载海报图片
+
+            // 海报图与本站同源，无需设置 crossOrigin（设置反而可能在部分 WebView 触发问题）
             const img = new Image();
-            img.crossOrigin = 'anonymous';
-            img.src = posterImage.src;
-            
+
             img.onload = function() {
-                // 设置canvas大小与图片相同
-                canvas.width = img.width;
-                canvas.height = img.height;
-                
+                // 用图片的真实像素尺寸，保证清晰度
+                const w = img.naturalWidth || img.width;
+                const h = img.naturalHeight || img.height;
+                canvas.width = w;
+                canvas.height = h;
+
                 // 绘制海报图片
-                ctx.drawImage(img, 0, 0);
-                
-                // 获取二维码图像
-                const qrImg = qrElement.querySelector('img');
-                if (qrImg) {
-                    // 创建临时图像对象加载二维码
+                ctx.drawImage(img, 0, 0, w, h);
+
+                // 二维码尺寸按海报宽度自适应（约占 24%）
+                const qrSize = Math.round(w * 0.24);
+                const margin = Math.round(w * 0.025);
+                const qrX = w - qrSize - margin;
+                const qrY = h - qrSize - margin;
+                const pad = Math.round(qrSize * 0.06);
+
+                function drawWhiteBoxAndFinish(qrDrawable) {
+                    // 白色圆角背景
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(qrX, qrY, qrSize, qrSize);
+                    if (qrDrawable) {
+                        ctx.drawImage(qrDrawable, qrX + pad, qrY + pad, qrSize - pad * 2, qrSize - pad * 2);
+                    }
+                    // 粉色边框
+                    ctx.strokeStyle = '#ff6b9d';
+                    ctx.lineWidth = Math.max(2, Math.round(w * 0.004));
+                    ctx.strokeRect(qrX, qrY, qrSize, qrSize);
+
+                    try {
+                        callback(canvas.toDataURL('image/png'));
+                    } catch (err) {
+                        if (onError) onError(err);
+                    }
+                }
+
+                const qrImg = qrElement ? qrElement.querySelector('img') : null;
+                if (qrImg && qrImg.src) {
                     const tempQrImg = new Image();
-                    tempQrImg.crossOrigin = 'anonymous';
+                    tempQrImg.onload = function() { drawWhiteBoxAndFinish(tempQrImg); };
+                    tempQrImg.onerror = function() { drawWhiteBoxAndFinish(null); };
                     tempQrImg.src = qrImg.src;
-                    
-                    tempQrImg.onload = function() {
-                        const qrWidth = 180;
-                        const qrHeight = 180;
-                        const qrX = img.width - qrWidth - 10; // 右边距10px
-                        const qrY = img.height - qrHeight - 10; // 底边距10px
-                        
-                        // 绘制二维码背景（白色）
-                        ctx.fillStyle = 'white';
-                        ctx.fillRect(qrX, qrY, qrWidth, qrHeight);
-                        
-                        // 绘制二维码图像
-                        ctx.drawImage(tempQrImg, qrX + 8, qrY + 8, qrWidth - 16, qrHeight - 16);
-                        
-                        // 绘制边框
-                        ctx.strokeStyle = '#ff6b9d';
-                        ctx.lineWidth = 2;
-                        ctx.strokeRect(qrX, qrY, qrWidth, qrHeight);
-                        
-                        // 生成合并后的图片URL
-                        const mergedImageUrl = canvas.toDataURL('image/png');
-                        callback(mergedImageUrl);
-                    };
                 } else {
-                    callback(canvas.toDataURL('image/png'));
+                    drawWhiteBoxAndFinish(null);
                 }
             };
+
+            img.onerror = function() {
+                if (onError) onError(new Error('海报图片加载失败'));
+            };
+
+            img.src = posterImage.src;
         }
-        
-        // 保存合并后的图片
+
+        // 生成合成图并在弹窗中展示，供用户长按保存
         function saveMergedImage(slideIndex) {
             const slides = document.querySelectorAll('.poster-slide');
-            if (slideIndex >= 0 && slideIndex < slides.length) {
-                const slide = slides[slideIndex];
-                const posterImage = slide.querySelector('.poster-image');
-                const qrElement = slide.querySelector('.qr-placeholder');
-                
-                mergeImageWithQR(posterImage, qrElement, function(mergedImageUrl) {
-                    // 创建临时链接用于下载
-                    const link = document.createElement('a');
-                    link.href = mergedImageUrl;
-                    link.download = 'promotion-poster-' + (slideIndex + 1) + '.png';
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    
-                    // 显示保存成功提示
-                    showSaveModal();
-                });
+            if (slideIndex < 0 || slideIndex >= slides.length) return;
+
+            const previewImg = document.getElementById('savePreviewImg');
+            const loading = document.getElementById('savePreviewLoading');
+            const hint = document.getElementById('savePreviewHint');
+            const downloadBtn = document.getElementById('saveDownloadBtn');
+
+            // 先打开弹窗并显示加载态
+            showSaveModal();
+            previewImg.style.display = 'none';
+            hint.style.display = 'none';
+            downloadBtn.style.display = 'none';
+            loading.style.display = 'block';
+            loading.textContent = '海报生成中，请稍候...';
+
+            // 命中缓存直接展示
+            if (mergedCache[slideIndex]) {
+                showPreview(mergedCache[slideIndex], slideIndex);
+                return;
             }
+
+            const slide = slides[slideIndex];
+            const posterImage = slide.querySelector('.poster-image');
+            const qrElement = slide.querySelector('.qr-placeholder');
+
+            mergeImageWithQR(posterImage, qrElement, function(mergedImageUrl) {
+                mergedCache[slideIndex] = mergedImageUrl;
+                showPreview(mergedImageUrl, slideIndex);
+            }, function() {
+                loading.textContent = '海报生成失败，请稍后重试';
+            });
+        }
+
+        // 在弹窗中展示合成图
+        function showPreview(dataUrl, slideIndex) {
+            const previewImg = document.getElementById('savePreviewImg');
+            const loading = document.getElementById('savePreviewLoading');
+            const hint = document.getElementById('savePreviewHint');
+            const downloadBtn = document.getElementById('saveDownloadBtn');
+
+            previewImg.src = dataUrl;
+            previewImg.style.display = 'block';
+            loading.style.display = 'none';
+            hint.style.display = 'block';
+            downloadBtn.style.display = 'block';
+
+            // 下载按钮兜底（部分浏览器支持直接下载）
+            downloadBtn.onclick = function() {
+                const link = document.createElement('a');
+                link.href = dataUrl;
+                link.download = 'promotion-poster-' + (slideIndex + 1) + '.png';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            };
         }
         
         // 页面加载时初始化
