@@ -217,21 +217,30 @@ body{ padding-bottom:0px; }
     <main class="detail-container">
         <!-- Main image -->
         <!-- Added onclick to open album -->
-        <!-- 顶部相册：图片+视频，可左右滑动，点击放大查看 -->
-        <div class="lt-gallery" id="ltGallery">
-        <?php foreach ($mediaList as $i => $m): ?>
-            <div class="lt-gallery-item" onclick="ltOpenLightbox(<?php echo $i; ?>)">
-            <?php if ($m['type'] === 'image'): ?>
-                <img class="lt-gallery-media" src="<?php echo $m['url']; ?>" loading="lazy" alt="图片<?php echo $i+1; ?>">
-            <?php else: ?>
-                <video class="lt-gallery-media" src="<?php echo $m['url']; ?>#t=0.5" preload="metadata" muted playsinline></video>
-                <span class="lt-play-badge"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="8 5 19 12 8 19 8 5"></polygon></svg></span>
+        <!-- 顶部相册：一次显示一张，左右箭头翻页，点击放大查看 -->
+        <div class="lt-carousel">
+            <div class="lt-gallery" id="ltGallery">
+            <?php foreach ($mediaList as $i => $m): ?>
+                <div class="lt-gallery-item" onclick="ltOpenLightbox(<?php echo $i; ?>)">
+                <?php if ($m['type'] === 'image'): ?>
+                    <img class="lt-gallery-media" src="<?php echo $m['url']; ?>" loading="lazy" alt="图片<?php echo $i+1; ?>">
+                <?php else: ?>
+                    <video class="lt-gallery-media" src="<?php echo $m['url']; ?>#t=0.5" preload="metadata" muted playsinline></video>
+                    <span class="lt-play-badge"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="8 5 19 12 8 19 8 5"></polygon></svg></span>
+                <?php endif; ?>
+                </div>
+            <?php endforeach; ?>
+            <?php if (empty($mediaList)): ?>
+                <div class="lt-gallery-item"><img class="lt-gallery-media" src="<?php echo $infos['pic']??''; ?>" alt="图片"></div>
             <?php endif; ?>
             </div>
-        <?php endforeach; ?>
-        <?php if (empty($mediaList)): ?>
-            <div class="lt-gallery-item"><img class="lt-gallery-media" src="<?php echo $infos['pic']??''; ?>" alt="图片"></div>
-        <?php endif; ?>
+            <button type="button" class="lt-car-nav lt-car-prev" id="ltCarPrev" aria-label="上一张">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"/></svg>
+            </button>
+            <button type="button" class="lt-car-nav lt-car-next" id="ltCarNext" aria-label="下一张">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"/></svg>
+            </button>
+            <div class="lt-car-counter"><span id="ltCarCurrent">1</span> / <span id="ltCarTotal">0</span></div>
         </div>
         <!-- 原主图容器隐藏保留，避免改动超长图标 SVG -->
         <div class="lt-gallery-old" style="display:none;">
@@ -566,39 +575,60 @@ body{ padding-bottom:0px; }
 <?php } ?>
     <!-- 顶部相册样式（图片+视频左右滑动）与放大灯箱样式 -->
     <style>
+    .lt-carousel{
+        position:relative;
+        width:100%;
+        background:#000;
+        overflow:hidden;
+    }
     .lt-gallery{
         display:flex;
-        gap:10px;
         overflow-x:auto;
         overflow-y:hidden;
         scroll-snap-type:x mandatory;
         -webkit-overflow-scrolling:touch;
-        padding:12px;
         margin:0;
         scrollbar-width:none;
-        background:#f7f7f8;
     }
     .lt-gallery::-webkit-scrollbar{display:none;}
     .lt-gallery-item{
         position:relative;
-        flex:0 0 auto;
-        width:84%;
-        height:62vw;
-        max-height:440px;
-        border-radius:14px;
+        flex:0 0 100%;
+        width:100%;
+        height:75vw;
+        max-height:480px;
         overflow:hidden;
         cursor:pointer;
         scroll-snap-align:center;
-        background:#e9e9ec;
-        box-shadow:0 4px 16px rgba(0,0,0,0.08);
+        background:#000;
     }
-    .lt-gallery.lt-single .lt-gallery-item{width:100%;}
     .lt-gallery-media{
         width:100%;
         height:100%;
         object-fit:cover;
         display:block;
     }
+    /* 轮播翻页箭头 */
+    .lt-car-nav{
+        position:absolute;top:50%;transform:translateY(-50%);
+        width:40px;height:40px;border:none;border-radius:50%;
+        background:rgba(0,0,0,0.35);color:#fff;cursor:pointer;
+        display:flex;align-items:center;justify-content:center;
+        z-index:3;transition:background .2s ease;
+    }
+    .lt-car-nav:active{background:rgba(0,0,0,0.6);}
+    .lt-car-nav svg{width:22px;height:22px;}
+    .lt-car-prev{left:10px;}
+    .lt-car-next{right:10px;}
+    .lt-car-nav.lt-hide{display:none;}
+    /* 计数器 */
+    .lt-car-counter{
+        position:absolute;bottom:12px;right:12px;
+        background:rgba(0,0,0,0.5);color:#fff;
+        padding:3px 11px;border-radius:20px;
+        font-size:13px;z-index:3;
+    }
+    .lt-car-counter.lt-hide{display:none;}
     .lt-play-badge{
         position:absolute;top:50%;left:50%;
         transform:translate(-50%,-50%);
@@ -761,6 +791,49 @@ const ltMedia = <?php echo json_encode($mediaList, JSON_UNESCAPED_SLASHES | JSON
         if (ltMedia.length > 1 && Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
             if (dx < 0) next(); else prev();
         }
+    }, {passive:true});
+})();
+
+// 顶部相册轮播：一次显示一张，左右箭头翻页
+(function(){
+    const gallery = document.getElementById('ltGallery');
+    if (!gallery) return;
+    const items = gallery.querySelectorAll('.lt-gallery-item');
+    const prevBtn = document.getElementById('ltCarPrev');
+    const nextBtn = document.getElementById('ltCarNext');
+    const curEl = document.getElementById('ltCarCurrent');
+    const totalEl = document.getElementById('ltCarTotal');
+    const counter = document.querySelector('.lt-car-counter');
+    const total = items.length;
+    let cur = 0;
+
+    if (totalEl) totalEl.textContent = total;
+
+    // 仅一张时隐藏箭头与计数器
+    if (total <= 1) {
+        if (prevBtn) prevBtn.classList.add('lt-hide');
+        if (nextBtn) nextBtn.classList.add('lt-hide');
+        if (counter) counter.classList.add('lt-hide');
+        return;
+    }
+
+    function goTo(i){
+        cur = Math.max(0, Math.min(total - 1, i));
+        gallery.scrollTo({ left: cur * gallery.clientWidth, behavior: 'smooth' });
+        if (curEl) curEl.textContent = cur + 1;
+    }
+
+    prevBtn.addEventListener('click', function(e){ e.stopPropagation(); goTo(cur - 1); });
+    nextBtn.addEventListener('click', function(e){ e.stopPropagation(); goTo(cur + 1); });
+
+    // 用户手动滑动时同步当前页码
+    let scrollTimer;
+    gallery.addEventListener('scroll', function(){
+        clearTimeout(scrollTimer);
+        scrollTimer = setTimeout(function(){
+            const i = Math.round(gallery.scrollLeft / gallery.clientWidth);
+            if (i !== cur) { cur = i; if (curEl) curEl.textContent = cur + 1; }
+        }, 80);
     }, {passive:true});
 })();
 </script>
