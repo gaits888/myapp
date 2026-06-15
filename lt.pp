@@ -565,6 +565,69 @@ body{ padding-bottom:0px; }
     </div>
 <?php } ?>
  
+    <!-- 放大灯箱样式：使用 top/left/right/bottom 与 absolute+transform 居中，兼容低版本安卓浏览器（不依赖 flexbox/inset） -->
+    <style>
+    .lt-lightbox{
+        display:none;
+        position:fixed;
+        top:0; left:0; right:0; bottom:0;
+        width:100%; height:100%;
+        background:#000;
+        background:rgba(0,0,0,0.92);
+        z-index:99999;
+    }
+    .lt-lightbox.active{ display:block; }
+    .lt-lightbox-header{
+        position:absolute; top:0; left:0; right:0;
+        height:56px; z-index:3;
+    }
+    .lt-lightbox-counter{
+        position:absolute; left:16px; top:14px;
+        color:#fff; font-size:15px;
+        background:rgba(0,0,0,0.4);
+        padding:4px 12px; border-radius:20px;
+    }
+    .lt-lightbox-close{
+        position:absolute; right:12px; top:10px;
+        width:40px; height:40px; padding:0;
+        border:0; border-radius:50%;
+        background:rgba(255,255,255,0.15);
+        color:#fff; cursor:pointer;
+        text-align:center; line-height:40px;
+    }
+    .lt-lightbox-close svg{ width:22px; height:22px; vertical-align:middle; }
+    .lt-lightbox-stage{
+        position:absolute;
+        top:0; left:0; right:0; bottom:0;
+        width:100%; height:100%;
+        text-align:center;
+    }
+    .lt-stage-media{
+        position:absolute;
+        top:50%; left:50%;
+        margin:0;
+        -webkit-transform:translate(-50%,-50%);
+        -ms-transform:translate(-50%,-50%);
+        transform:translate(-50%,-50%);
+        max-width:100%;
+        max-height:90%;
+        display:block;
+    }
+    .lt-lightbox-nav{
+        position:absolute; top:50%;
+        margin-top:-22px;
+        width:44px; height:44px; padding:0;
+        border:0; border-radius:50%;
+        background:rgba(255,255,255,0.15);
+        color:#fff; cursor:pointer;
+        text-align:center; line-height:44px;
+        z-index:3;
+    }
+    .lt-lightbox-nav svg{ width:24px; height:24px; vertical-align:middle; }
+    .lt-prev{ left:12px; }
+    .lt-next{ right:12px; }
+    </style>
+
     <div class="lt-lightbox" id="ltLightbox" aria-hidden="true">
         <div class="lt-lightbox-header">
             <span class="lt-lightbox-counter"><span id="ltCurrent">1</span> / <span id="ltTotal">0</span></span>
@@ -628,8 +691,8 @@ function ltOpenLightbox(i){}
         stage.appendChild(el);
         curEl.textContent = idx + 1;
         var multi = ltMedia.length > 1;
-        prevBtn.style.display = multi ? 'flex' : 'none';
-        nextBtn.style.display = multi ? 'flex' : 'none';
+        prevBtn.style.display = multi ? 'block' : 'none';
+        nextBtn.style.display = multi ? 'block' : 'none';
     }
 
     // 覆盖占位函数为真实实现
