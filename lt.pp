@@ -62,7 +62,20 @@ $picsArray  =$picsArrays['arr'];
 
 //视频
 $videoArrays =z_imgurl_arr($infos['videos'],$infos['ossvideos'],1,$infos['oss']);
-$videoArray  =$picsArrays['arr'];
+$videoArray  =$videoArrays['arr'];
+
+// 合并媒体：图片在前，视频在后（供顶部相册与放大灯箱使用）
+$mediaList = [];
+if (!empty($picsArray)) {
+    foreach ($picsArray as $p) {
+        if ($p !== '') { $mediaList[] = ['type' => 'image', 'url' => $p]; }
+    }
+}
+if (!empty($videoArray)) {
+    foreach ($videoArray as $v) {
+        if ($v !== '') { $mediaList[] = ['type' => 'video', 'url' => $v]; }
+    }
+}
 
 $where = [];
 $where['infob.flag'] = 1;
@@ -204,7 +217,24 @@ body{ padding-bottom:0px; }
     <main class="detail-container">
         <!-- Main image -->
         <!-- Added onclick to open album -->
-        <div class="image-container" onclick="fl_openFullscreenAlbum(0)">
+        <!-- 顶部相册：图片+视频，可左右滑动，点击放大查看 -->
+        <div class="lt-gallery" id="ltGallery">
+        <?php foreach ($mediaList as $i => $m): ?>
+            <div class="lt-gallery-item" onclick="ltOpenLightbox(<?php echo $i; ?>)">
+            <?php if ($m['type'] === 'image'): ?>
+                <img class="lt-gallery-media" src="<?php echo $m['url']; ?>" loading="lazy" alt="图片<?php echo $i+1; ?>">
+            <?php else: ?>
+                <video class="lt-gallery-media" src="<?php echo $m['url']; ?>#t=0.5" preload="metadata" muted playsinline></video>
+                <span class="lt-play-badge"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="8 5 19 12 8 19 8 5"></polygon></svg></span>
+            <?php endif; ?>
+            </div>
+        <?php endforeach; ?>
+        <?php if (empty($mediaList)): ?>
+            <div class="lt-gallery-item"><img class="lt-gallery-media" src="<?php echo $infos['pic']??''; ?>" alt="图片"></div>
+        <?php endif; ?>
+        </div>
+        <!-- 原主图容器隐藏保留，避免改动超长图标 SVG -->
+        <div class="lt-gallery-old" style="display:none;">
             
             <div style="position:absolute;z-index:5;right:20px;bottom:20px;">
             
@@ -534,64 +564,205 @@ body{ padding-bottom:0px; }
         </div>
     </div>
 <?php } ?>
-    <!-- Added full-screen album HTML structure from comm/photo_album.html -->
-    <div class="fl_fullscreen_album" id="fl_fullscreen_album">
-        <!-- 顶部控制栏 -->
-        <div class="fl_album_header">
-            <div class="fl_album_title">精选相册</div>
-            <div class="fl_close_btn" id="fl_close_btn" aria-label="关闭相册">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
-            </div>
+    <!-- 顶部相册样式（图片+视频左右滑动）与放大灯箱样式 -->
+    <style>
+    .lt-gallery{
+        display:flex;
+        gap:10px;
+        overflow-x:auto;
+        overflow-y:hidden;
+        scroll-snap-type:x mandatory;
+        -webkit-overflow-scrolling:touch;
+        padding:12px;
+        margin:0;
+        scrollbar-width:none;
+        background:#f7f7f8;
+    }
+    .lt-gallery::-webkit-scrollbar{display:none;}
+    .lt-gallery-item{
+        position:relative;
+        flex:0 0 auto;
+        width:84%;
+        height:62vw;
+        max-height:440px;
+        border-radius:14px;
+        overflow:hidden;
+        cursor:pointer;
+        scroll-snap-align:center;
+        background:#e9e9ec;
+        box-shadow:0 4px 16px rgba(0,0,0,0.08);
+    }
+    .lt-gallery.lt-single .lt-gallery-item{width:100%;}
+    .lt-gallery-media{
+        width:100%;
+        height:100%;
+        object-fit:cover;
+        display:block;
+    }
+    .lt-play-badge{
+        position:absolute;top:50%;left:50%;
+        transform:translate(-50%,-50%);
+        width:54px;height:54px;border-radius:50%;
+        background:rgba(0,0,0,0.45);
+        display:flex;align-items:center;justify-content:center;
+        color:#fff;pointer-events:none;
+    }
+    .lt-play-badge svg{width:24px;height:24px;margin-left:3px;}
+
+    .lt-lightbox{
+        position:fixed;inset:0;
+        background:rgba(0,0,0,0.92);
+        z-index:9999;
+        display:none;
+        align-items:center;justify-content:center;
+    }
+    .lt-lightbox.active{display:flex;}
+    .lt-lightbox-header{
+        position:absolute;top:0;left:0;right:0;
+        display:flex;align-items:center;justify-content:space-between;
+        padding:16px;z-index:2;
+    }
+    .lt-lightbox-counter{font-size:15px;color:#fff;background:rgba(0,0,0,0.4);padding:4px 12px;border-radius:20px;}
+    .lt-lightbox-close{
+        width:40px;height:40px;border:none;border-radius:50%;
+        background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;
+        display:flex;align-items:center;justify-content:center;
+    }
+    .lt-lightbox-close svg{width:22px;height:22px;}
+    .lt-lightbox-stage{
+        width:100%;height:100%;
+        display:flex;align-items:center;justify-content:center;
+        padding:0 12px;
+    }
+    .lt-stage-media{
+        max-width:100%;max-height:86vh;
+        object-fit:contain;border-radius:6px;
+    }
+    .lt-lightbox-nav{
+        position:absolute;top:50%;transform:translateY(-50%);
+        width:44px;height:44px;border:none;border-radius:50%;
+        background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;
+        display:flex;align-items:center;justify-content:center;z-index:2;
+    }
+    .lt-lightbox-nav svg{width:24px;height:24px;}
+    .lt-prev{left:12px;}
+    .lt-next{right:12px;}
+    .lt-lightbox-nav:active{background:rgba(255,255,255,0.3);}
+    </style>
+
+    <!-- 放大查看灯箱：支持图片与视频，左右箭头翻页 -->
+    <div class="lt-lightbox" id="ltLightbox" aria-hidden="true">
+        <div class="lt-lightbox-header">
+            <span class="lt-lightbox-counter"><span id="ltCurrent">1</span> / <span id="ltTotal">0</span></span>
+            <button type="button" class="lt-lightbox-close" id="ltClose" aria-label="关闭">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
         </div>
-
-        <!-- 相册主容器 -->
-        <div class="fl_album_container">
-            <!-- 图片显示区域 -->
-            <div class="fl_image_wrapper">
-                <img class="fl_album_image" id="fl_album_image" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" alt="相册图片">
-            </div>
-
-            <!-- 左侧导航按钮 -->
-            <div class="fl_nav_btn fl_prev_btn" id="fl_prev_btn" aria-label="上一张">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"/>
-                </svg>
-            </div>
-
-            <!-- 右侧导航按钮 -->
-            <div class="fl_nav_btn fl_next_btn" id="fl_next_btn" aria-label="下一张">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"/>
-                </svg>
-            </div>
-        </div>
-
-        <!-- 底部信息栏 -->
-        <div class="fl_album_footer">
-            <!-- 图片计数器 -->
-            <div class="fl_counter">
-                <span id="fl_current_num">1</span> / <span id="fl_total_num">4</span>
-            </div>
-
-            <!-- 缩略图导航 -->
-            <div class="fl_thumbnails" id="fl_thumbnails">
-                <!-- 缩略图将通过JavaScript动态生成 -->
-            </div>
-        </div>
+        <div class="lt-lightbox-stage" id="ltStage"></div>
+        <button type="button" class="lt-lightbox-nav lt-prev" id="ltPrev" aria-label="上一张">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"/></svg>
+        </button>
+        <button type="button" class="lt-lightbox-nav lt-next" id="ltNext" aria-label="下一张">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"/></svg>
+        </button>
     </div>
 
 <script>
 const hasViewedContact = false; 
-const fl_albumPhotos = [
-<?php
-  foreach ($picsArray as $key => $value) {
-  ?>
-  { src: '<?php echo $value;?>', alt: '相册图片 <?php echo $key+1;?>' },
+// 媒体列表（图片在前，视频在后）
+const ltMedia = <?php echo json_encode($mediaList, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE); ?>;
+(function(){
+    const gallery = document.getElementById('ltGallery');
+    const lightbox = document.getElementById('ltLightbox');
+    if (!lightbox) return;
+    const stage = document.getElementById('ltStage');
+    const curEl = document.getElementById('ltCurrent');
+    const totalEl = document.getElementById('ltTotal');
+    const prevBtn = document.getElementById('ltPrev');
+    const nextBtn = document.getElementById('ltNext');
+    const closeBtn = document.getElementById('ltClose');
+    let idx = 0;
 
-<?php }?>
-];
+    totalEl.textContent = ltMedia.length;
+
+    // 单个媒体时顶部相册占满整宽
+    if (gallery && ltMedia.length <= 1) {
+        gallery.classList.add('lt-single');
+    }
+
+    function pauseStageVideo(){
+        const v = stage.querySelector('video');
+        if (v) { try { v.pause(); } catch(e){} }
+    }
+
+    function render(){
+        const m = ltMedia[idx];
+        if (!m) return;
+        pauseStageVideo();
+        stage.innerHTML = '';
+        let el;
+        if (m.type === 'video') {
+            el = document.createElement('video');
+            el.src = m.url;
+            el.controls = true;
+            el.autoplay = true;
+            el.setAttribute('playsinline', '');
+            el.setAttribute('webkit-playsinline', '');
+        } else {
+            el = document.createElement('img');
+            el.src = m.url;
+            el.alt = '图片';
+        }
+        el.className = 'lt-stage-media';
+        stage.appendChild(el);
+        curEl.textContent = idx + 1;
+        const multi = ltMedia.length > 1;
+        prevBtn.style.display = multi ? 'flex' : 'none';
+        nextBtn.style.display = multi ? 'flex' : 'none';
+    }
+
+    window.ltOpenLightbox = function(i){
+        if (!ltMedia.length) return;
+        idx = i || 0;
+        render();
+        lightbox.classList.add('active');
+        lightbox.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+    };
+
+    function close(){
+        pauseStageVideo();
+        stage.innerHTML = '';
+        lightbox.classList.remove('active');
+        lightbox.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+    }
+    function prev(){ idx = (idx - 1 + ltMedia.length) % ltMedia.length; render(); }
+    function next(){ idx = (idx + 1) % ltMedia.length; render(); }
+
+    closeBtn.addEventListener('click', close);
+    prevBtn.addEventListener('click', function(e){ e.stopPropagation(); prev(); });
+    nextBtn.addEventListener('click', function(e){ e.stopPropagation(); next(); });
+    lightbox.addEventListener('click', function(e){ if (e.target === lightbox || e.target === stage) close(); });
+    document.addEventListener('keydown', function(e){
+        if (!lightbox.classList.contains('active')) return;
+        if (e.key === 'Escape') close();
+        else if (e.key === 'ArrowLeft') prev();
+        else if (e.key === 'ArrowRight') next();
+    });
+
+    // 灯箱内左右滑动翻页
+    let sx = 0, sy = 0, swiping = false;
+    stage.addEventListener('touchstart', function(e){ const t = e.touches[0]; sx = t.clientX; sy = t.clientY; swiping = true; }, {passive:true});
+    stage.addEventListener('touchend', function(e){
+        if (!swiping) return; swiping = false;
+        const t = e.changedTouches[0];
+        const dx = t.clientX - sx, dy = t.clientY - sy;
+        if (ltMedia.length > 1 && Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+            if (dx < 0) next(); else prev();
+        }
+    }, {passive:true});
+})();
 </script>
 
 
