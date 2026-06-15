@@ -740,8 +740,8 @@ $(document).ready(function() {
             var counter = document.getElementById('galleryCounter');
             var item = mediaList[currentIndex];
             
-            // 保留导航按钮
-            var navButtons = '<button class="gallery-nav gallery-prev" onclick="prevMedia()">‹</button><button class="gallery-nav gallery-next" onclick="nextMedia()">›</button>';
+            // 保留导航按钮（使用 SVG 箭头，与页面静态按钮保持一致）
+            var navButtons = '<button class="gallery-nav gallery-prev" onclick="prevMedia()"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:25px;height:25px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg></button><button class="gallery-nav gallery-next" onclick="nextMedia()"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:25px;height:25px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg></button>';
             
             if (item.type === 'video') {
                 content.innerHTML = '<video src="' + item.src + '" controls autoplay style="max-width:100%;max-height:100%;"></video>' + navButtons;
