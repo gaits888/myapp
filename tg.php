@@ -283,23 +283,32 @@ $rk_url = $rk_url_config.'?inviteCode='.$user_inviteCode;
         .carousel-dots {
             display: flex;
             justify-content: center;
-            margin-top: 10px;
+            flex-wrap: wrap;
+            margin-top: 12px;
         }
 
         .dot {
-            width: 8px;
-            height: 8px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
-            background: #e0e0e0;
+            background: #ffffff;
+            border: 1px solid #ffd0e0;
+            color: #ff6b9d;
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 30px;
+            text-align: center;
             transition: all 0.3s;
             cursor: pointer;
-            margin-right: 10px;
+            margin: 0 6px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
         }
 
         .dot.active {
             background: linear-gradient(135deg, #ff6b9d 0%, #ff8fb3 100%);
-            width: 24px;
-            border-radius: 4px;
+            color: #ffffff;
+            border-color: transparent;
+            box-shadow: 0 4px 10px rgba(255, 107, 157, 0.35);
         }
 
         .action-tips {
@@ -325,6 +334,36 @@ $rk_url = $rk_url_config.'?inviteCode='.$user_inviteCode;
             height: 18px;
             fill: #ff6b9d;
             margin-right: 5px;
+        }
+
+        .generate-poster-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 14px;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #ff6b9d 0%, #ff8fb3 100%);
+            color: #ffffff;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(255, 107, 157, 0.3);
+        }
+
+        .generate-poster-btn:active {
+            transform: scale(0.97);
+            box-shadow: 0 2px 8px rgba(255, 107, 157, 0.2);
+        }
+
+        .generate-poster-btn svg {
+            width: 20px;
+            height: 20px;
+            fill: #ffffff;
+            margin-right: 8px;
         }
 
         .promo-steps {
@@ -572,7 +611,7 @@ $rk_url = $rk_url_config.'?inviteCode='.$user_inviteCode;
                 <li>好友注册成功，您可获得 <strong style="color: #ff6b9d;">5积分</strong> 奖励</li>
                 <li>好友发布信息，您可获得 <strong style="color: #ff6b9d;">10积分</strong> 奖励</li>
                 <li>好友购买VIP会员，您可获得 <strong style="color: #ff6b9d;">40%</strong> 分润</li>
-              <!--  <li>累计推广满10人，升级为 <strong style="color: #ff6b9d;">推广大使</strong></li>  -->
+              <!--  <li>累计推广满10人���升级为 <strong style="color: #ff6b9d;">推广大使</strong></li>  -->
             </ul>
         </div>
 
@@ -581,7 +620,7 @@ $rk_url = $rk_url_config.'?inviteCode='.$user_inviteCode;
             <div class="poster-wrapper" id="posterWrapper">
                 <div class="poster-container" id="posterContainer">
                     <div class="poster-slide">
-                        <img src="/images/tg/1.jpg" alt="推广海报1" class="poster-image">
+                        <img src="/images/tg/1.jpg" alt="推广���报1" class="poster-image">
                         <div class="qr-overlay">
                             <div class="qr-placeholder">扫码<br>注册</div>
                         </div>
@@ -634,6 +673,14 @@ $rk_url = $rk_url_config.'?inviteCode='.$user_inviteCode;
                 点击上面的海报，即可生成带二维码的海报并保存分享.
             </div>
         </div>
+
+        <!-- 生成推广图按钮 -->
+        <button class="generate-poster-btn" onclick="saveMergedImage(currentSlide)">
+            <svg viewBox="0 0 24 24">
+                <path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2v9.67z"/>
+            </svg>
+            生成推广图
+        </button>
 
         <!-- 推广步骤 -->
         <div class="promo-steps">
@@ -689,6 +736,7 @@ $rk_url = $rk_url_config.'?inviteCode='.$user_inviteCode;
             for (let i = 0; i < totalSlides; i++) {
                 const dot = document.createElement('div');
                 dot.className = 'dot' + (i === 0 ? ' active' : '');
+                dot.textContent = (i + 1);
                 dot.onclick = () => goToSlide(i);
                 dotsContainer.appendChild(dot);
             }
@@ -969,7 +1017,7 @@ $rk_url = $rk_url_config.'?inviteCode='.$user_inviteCode;
         window.addEventListener('DOMContentLoaded', () => {
             initDots();
             
-            // 获取所有的qr-placeholder元素并生成二维码
+            // 获取所有的qr-placeholder���素并生成二维码
             const qrPlaceholders = document.querySelectorAll('.qr-placeholder');
             const url = '<?php echo $rk_url; ?>';
             
