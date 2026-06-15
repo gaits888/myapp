@@ -520,7 +520,7 @@ $rk_url = $rk_url_config.'?inviteCode='.$user_inviteCode;
         }
 
         .save-preview-hint {
-            font-size: 13px;
+            font-size: 16px;
             color: #ff6b9d;
             font-weight: 600;
             margin-bottom: 16px;
@@ -665,6 +665,7 @@ $rk_url = $rk_url_config.'?inviteCode='.$user_inviteCode;
         </div>
 
         <!-- 操作提示 -->
+        <!--
         <div class="action-tips">
             <div class="action-tips-text">
                 <svg viewBox="0 0 24 24">
@@ -673,6 +674,7 @@ $rk_url = $rk_url_config.'?inviteCode='.$user_inviteCode;
                 点击上面的海报，即可生成带二维码的海报并保存分享.
             </div>
         </div>
+        -->
 
         <!-- 生成推广图按钮 -->
         <button class="generate-poster-btn" onclick="saveMergedImage(currentSlide)">
@@ -713,7 +715,7 @@ $rk_url = $rk_url_config.'?inviteCode='.$user_inviteCode;
     <div class="save-modal" id="saveModal">
         <div class="save-modal-content">
             <h3 class="save-modal-title">保存推广海报</h3>
-            <p class="save-modal-text">长按下方海报，选择“保存图片”即可保存到相册</p>
+            <p class="save-modal-text">长按下图，选择“保存图片到相册”即可</p>
             <div class="save-preview-wrap">
                 <div class="save-preview-loading" id="savePreviewLoading">海报生成中，请稍候...</div>
                 <img class="save-preview-img" id="savePreviewImg" alt="推广海报" style="display:none;">
