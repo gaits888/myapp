@@ -736,17 +736,17 @@ function ltOpenLightbox(i){}
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-const favoriteBtn = document.getElementById('favoriteBtn');
-const favoriteText = document.getElementById('favoriteText');
-const iscollectInput = document.getElementById('iscollect');
+var favoriteBtn = document.getElementById('favoriteBtn');
+var favoriteText = document.getElementById('favoriteText');
+var iscollectInput = document.getElementById('iscollect');
 
 if (!favoriteBtn || !favoriteText || !iscollectInput) {
     return;
 }
 
-let isFavorited = parseInt(iscollectInput.value) === 1;
+var isFavorited = parseInt(iscollectInput.value) === 1;
 
-const uids=<?php echo $userData['userId']??0;?>;
+var uids=<?php echo $userData['userId']??0;?>;
 favoriteBtn.addEventListener('click', function() {
     if (uids<=0) {
         showInfo('请先登陆，在操作!');
@@ -774,56 +774,51 @@ function updateFavoriteDisplay(idsss) {
 }
 
 function sendFavoriteRequest() {
-    const infoId = window.currentInfoId;
+    var infoId = window.currentInfoId;
     if (!infoId) {
         return;
     }
 
-    fetch('/oper/info/user_collections.html', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
-        },
-        body: `info_id=${encodeURIComponent(infoId)}`,
-    })
-    .then(response => response.json())
-    .then(result => {
-        if (result.code ===200 ) {
-            showInfo(result.msg);
-
-            if (result.msg === '取消收藏成功') {
-                updateFavoriteDisplay(0);
-            }else{
-                updateFavoriteDisplay(1);
+    // 用 jQuery $.ajax 代替 fetch，兼容所有浏览器
+    $.ajax({
+        url: '/oper/info/user_collections.html',
+        type: 'POST',
+        contentType: 'application/x-www-form-urlencoded;charset=UTF-8',
+        dataType: 'json',
+        data: 'info_id=' + encodeURIComponent(infoId),
+        success: function(result) {
+            if (result.code === 200) {
+                showInfo(result.msg);
+                if (result.msg === '取消收藏成功') {
+                    updateFavoriteDisplay(0);
+                } else {
+                    updateFavoriteDisplay(1);
+                }
             }
-            
+        },
+        error: function() {
+            console.log('[v0] 收藏请求失败');
         }
-    })
-    .catch(error => {
-        console.error('收藏请求失败:', error);
-        // 如果请求失败，恢复之前的状态
-     
     });
 }
 
 // 查看联系方式功能
-const viewedContactBtn = document.getElementById('viewedContactBtn');
-const pointsContactBtn = document.getElementById('pointsContactBtn');
-const memberContactBtn = document.getElementById('memberContactBtn');
-const isMoneySj = <?php echo $is_money_sj; ?>;
+var viewedContactBtn = document.getElementById('viewedContactBtn');
+var pointsContactBtn = document.getElementById('pointsContactBtn');
+var memberContactBtn = document.getElementById('memberContactBtn');
+var isMoneySj = <?php echo $is_money_sj; ?>;
 if (viewedContactBtn) {
-    viewedContactBtn.addEventListener('click', () => sendContactRequest(3));
+    viewedContactBtn.addEventListener('click', function() { sendContactRequest(3); });
 }
 
 if (pointsContactBtn) {
-    pointsContactBtn.addEventListener('click', () => sendContactRequest(2));
+    pointsContactBtn.addEventListener('click', function() { sendContactRequest(2); });
 }
 
 if (memberContactBtn) {
 
-    memberContactBtn.addEventListener('click', () => {
+    memberContactBtn.addEventListener('click', function() {
 
-        // console.log(isMoneySj)
         // Check if payment is required due to exhausted free attempts
         if (isMoneySj === 1) {
             // Prompt for payment
@@ -838,99 +833,88 @@ if (memberContactBtn) {
         }
     });
 
-    // memberContactBtn.addEventListener('click', () => sendContactRequest(1));
 }
 
 
 
 function sendContactRequest(type) {
-    const infoId = window.currentInfoId;
+    var infoId = window.currentInfoId;
     if (!infoId) {
         return;
     }
 
-    const uids=<?php echo $userData['userId'] ?? 0; ?>;
+    var uids=<?php echo $userData['userId'] ?? 0; ?>;
     if (uids<=0) {
         alert('请先登陆，在操作!');
         window.location.href='/login.html';
         return;
     }    
-    
-    fetch('/oper/info/seeinfos.html', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
-        },
-        body: `info_id=${encodeURIComponent(infoId)}&type=${type}`
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.code === 200) {
-            updateContactModal(data.data);
-            openContactModal();
-            if(type!=3){
+
+    // 用 jQuery $.ajax 代替 fetch，兼容所有浏览器
+    $.ajax({
+        url: '/oper/info/seeinfos.html',
+        type: 'POST',
+        contentType: 'application/x-www-form-urlencoded;charset=UTF-8',
+        dataType: 'json',
+        data: 'info_id=' + encodeURIComponent(infoId) + '&type=' + type,
+        success: function(data) {
+            if (data.code === 200) {
+                updateContactModal(data.data);
+                openContactModal();
+                if (type != 3) {
                     showSuccess(data.msg || '操作成功！', '操作成功');
                     document.getElementById('vip-see-message').style.display = 'flex';
                     document.getElementById('vip-see-messageno').style.display = 'none';
                 }
-            // 隐藏积分和会员查看按钮，显示已查看按钮
-            if (pointsContactBtn) pointsContactBtn.style.display = 'none';
-            if (memberContactBtn) memberContactBtn.style.display = 'none';
-            if (viewedContactBtn) viewedContactBtn.style.display = 'block';
-        } else {
-            showInfo(data.msg);
+                // 隐藏积分和会员查看按钮，显示已查看按钮
+                if (pointsContactBtn) pointsContactBtn.style.display = 'none';
+                if (memberContactBtn) memberContactBtn.style.display = 'none';
+                if (viewedContactBtn) viewedContactBtn.style.display = 'block';
+            } else {
+                showInfo(data.msg);
+            }
+        },
+        error: function() {
+            console.log('[v0] 查看联系方式请求失败');
+            alert('网络请求失败，请稍后重试');
         }
-    })
-    .catch(error => {
-        console.error('查看联系方式请求失败:', error);
-        alert('网络请求失败，请稍后重试');
     });
 }
 
 function updateContactModal(contact) {
     // 更新手机
-    const mobileElement = document.getElementById('modal-mobile');
-    const copyMobileBtn = document.getElementById('copy-mobile');
+    var mobileElement = document.getElementById('modal-mobile');
     if (mobileElement) {
         mobileElement.textContent = contact.mobile || '未填写';
     }
 
     // 更新微信
-    const weixinElement = document.getElementById('modal-weixin');
-    const copyWeixinBtn = document.getElementById('copy-weixin');
+    var weixinElement = document.getElementById('modal-weixin');
     if (weixinElement) {
         weixinElement.textContent = contact.weixin || '未填写';
     }
 
     // 更新QQ
-    const qqElement = document.getElementById('modal-qq');
-    const copyQqBtn = document.getElementById('copy-qq');
+    var qqElement = document.getElementById('modal-qq');
     if (qqElement) {
         qqElement.textContent = contact.qq || '未填写';
     }
 
     // 更新邮箱
-    const yuliElement = document.getElementById('modal-yuli');
-    const copyYuliBtn = document.getElementById('copy-yuli');
+    var yuliElement = document.getElementById('modal-yuli');
     if (yuliElement) {
         yuliElement.textContent = contact.yuli || '未填写';
     }
 
     // 更新飞信
-    const feijiElement = document.getElementById('modal-telegram');
-    const copyFeijiBtn = document.getElementById('copy-telegram');
+    var feijiElement = document.getElementById('modal-telegram');
     if (feijiElement) {
         feijiElement.textContent = contact.feiji || '未填写';
     }
 }
 
 function openContactModal() {
-    const contactModal = document.getElementById('contactModal');
+    var contactModal = document.getElementById('contactModal');
     if (contactModal) {
         contactModal.classList.remove('hidden');
         document.body.classList.add('modal-open');
@@ -946,14 +930,14 @@ document.addEventListener('DOMContentLoaded', function() {
     // 验证码不在页面首次加载时请求，改为打开举报弹窗时再加载（见 openReportModal）
 
     // Use the new modal ID and class names
-    const reportModal = document.getElementById('reportModal');
-    const reportBtn = document.getElementById('reportBtn');
-    const closeBtn = document.getElementById('closeReportModal');
-    const reportContent = document.getElementById('reportDescription');
-    const submitBtn = document.getElementById('submitReportBtn');
-    const captchaInput = document.getElementById('captchaCode');
+    var reportModal = document.getElementById('reportModal');
+    var reportBtn = document.getElementById('reportBtn');
+    var closeBtn = document.getElementById('closeReportModal');
+    var reportContent = document.getElementById('reportDescription');
+    var submitBtn = document.getElementById('submitReportBtn');
+    var captchaInput = document.getElementById('captchaCode');
 
-    const closeReportModalsss = document.getElementById('closeReportModalsss');
+    var closeReportModalsss = document.getElementById('closeReportModalsss');
 
     if (!reportModal || !reportBtn) {
         return;
@@ -982,13 +966,16 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Close modal by clicking overlay
-    reportModal.querySelector('.modal-overlay').addEventListener('click', closeReportModal);
+    var overlay = reportModal.querySelector('.modal-overlay');
+    if (overlay) {
+        overlay.addEventListener('click', closeReportModal);
+    }
 
     if (submitBtn) {
         submitBtn.addEventListener('click', function() {
-            const content = reportContent.value.trim();
-            const captcha = captchaInput.value.trim();
-            const infoId = window.currentInfoId;
+            var content = reportContent.value.replace(/^\s+|\s+$/g, '');
+            var captcha = captchaInput.value.replace(/^\s+|\s+$/g, '');
+            var infoId = window.currentInfoId;
 
             if (!content) {
                 showInfo('请填写举报内容');
@@ -1005,47 +992,41 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-            const uids=<?php echo $userData['userId'] ?? 0; ?>;
+            var uids=<?php echo $userData['userId'] ?? 0; ?>;
             if (uids<=0) {
                 alert('请先登陆，在操作!');
                 window.location.href='/login.html';
                 return;
             }    
-            
-            fetch('/oper/info/inforeport.html', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
-                },
-                body: `info_id=${encodeURIComponent(infoId)}&jb_msg=${encodeURIComponent(content)}&captcha=${encodeURIComponent(captcha)}`,
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.text();
-            })
-            .then(data => {
-                try {
-                    const result = JSON.parse(data);
-                    
-                    if (result.code === 200 || result.success) {
-                        showSuccess(result.msg || '举报成功');
+
+            // 用 jQuery $.ajax 代替 fetch，兼容所有浏览器
+            $.ajax({
+                url: '/oper/info/inforeport.html',
+                type: 'POST',
+                contentType: 'application/x-www-form-urlencoded;charset=UTF-8',
+                dataType: 'text',
+                data: 'info_id=' + encodeURIComponent(infoId) + '&jb_msg=' + encodeURIComponent(content) + '&captcha=' + encodeURIComponent(captcha),
+                success: function(data) {
+                    try {
+                        var result = JSON.parse(data);
+                        if (result.code === 200 || result.success) {
+                            showSuccess(result.msg || '举报成功');
+                            closeReportModal();
+                        } else {
+                            showError(result.msg || '举报失败，请稍后重试');
+                            refreshCaptcha(); // Refresh captcha if submission fails but not network error
+                        }
+                    } catch (e) {
+                        // If response is not JSON, treat it as a success message
+                        showSuccess(data || '举报成功');
                         closeReportModal();
-                    } else {
-                        showError(result.msg || '举报失败，请稍后重试');
-                        refreshCaptcha(); // Refresh captcha if submission fails but not network error
                     }
-                } catch (e) {
-                    // If response is not JSON, treat it as a success message
-                    showSuccess(data || '举报成功');
-                    closeReportModal();
+                },
+                error: function() {
+                    console.log('[v0] 举报请求失败');
+                    showInfo('举报失败，请稍后重试');
+                    refreshCaptcha(); // Refresh captcha on network error
                 }
-            })
-            .catch(error => {
-                console.error('举报请求失败:', error);
-                showInfo('举报失败，请稍后重试');
-                refreshCaptcha(); // Refresh captcha on network error
             });
         });
     }
