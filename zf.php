@@ -136,11 +136,12 @@ h1 { text-align:center; font-size:22px; margin-bottom:20px; color:red; }
     .money-opt { min-width:calc(33.33% - 8px); font-size:14px; padding:8px 5px; }
 }
 
-/* 返回按钮 */
-.back-bar { display:flex; align-items:center; margin-bottom:15px; }
-.back-btn { display:inline-flex; align-items:center; color:#4a90d9; text-decoration:none; font-size:14px; padding:6px 12px; border-radius:6px; transition:background .2s; cursor:pointer; }
-.back-btn:hover { background:rgba(74,144,217,.1); }
-.back-btn svg { width:18px; height:18px; margin-right:4px; }
+/* 顶部头部栏 */
+.app-header { position:relative; display:flex; align-items:center; justify-content:center; height:48px; background:#fff; border-bottom:1px solid #eee; box-shadow:0 1px 3px rgba(0,0,0,.04); }
+.app-header .header-title { font-size:18px; font-weight:600; color:#333; }
+.app-header .header-back { position:absolute; left:6px; top:0; bottom:0; width:44px; display:flex; align-items:center; justify-content:center; background:none; border:none; padding:0; cursor:pointer; color:#333; -webkit-tap-highlight-color:transparent; }
+.app-header .header-back svg { width:24px; height:24px; display:block; }
+.app-header .header-back:active { opacity:.5; }
 
 /* 相册弹窗 */
 .gallery-overlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,.9); z-index:200; }
@@ -165,17 +166,17 @@ h1 { text-align:center; font-size:22px; margin-bottom:20px; color:red; }
 </style>
 </head>
 <body>
-<div class="container">
-    <!-- 返回按钮 -->
-    <div class="back-bar">
-        <a class="back-btn" onclick="goBack();">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="15 18 9 12 15 6"></polyline>
-            </svg>
-            返回
-        </a>
-    </div>
+<!-- 顶部头部栏 -->
+<header class="app-header">
+    <button type="button" class="header-back" onclick="goBack();" aria-label="返回">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+    </button>
+    <span class="header-title">在线充值</span>
+</header>
 
+<div class="container">
     <h1>欢迎使用平台线下扫码支付(实时到账)</h1>
 
     <!-- 收款码组切换 -->
