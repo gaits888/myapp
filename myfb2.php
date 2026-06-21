@@ -957,7 +957,7 @@ $zdPackages = [
           // 审核拒绝时显示拒绝理由（ly字段），并做HTML转义防止XSS
           var reasonHtml = '';
           if (item.flag == 2 && item.ly && String(item.ly).replace(/^\s+|\s+$/g, '') !== '') {
-            reasonHtml = `<div class="publish-reason"><span class="publish-reason-label">拒绝理由：</span>${escapeHtml(item.ly)}</div>`;
+            reasonHtml = `<div class="publish-reason"><span class="publish-reason-label">拒绝原因：</span>${escapeHtml(item.ly)}</div>`;
           }
 
           var cardHtml = `
@@ -969,7 +969,7 @@ $zdPackages = [
                   <img src="${item.pic}" onerror="this.src='upload/default_avatar.png';" alt="${item.title}" class="publish-image">
                 </a>
               </div>
-              <a href="${seeurl}.html?id=${item.id}" class="publish-link">
+              <a href="${seeurl}${item.id}.html" class="publish-link">
                 <div class="publish-info">
                   <div class="publish-title">${item.title}</div>
                  <!-- <div class="publish-price">${item.price}</div> -->
