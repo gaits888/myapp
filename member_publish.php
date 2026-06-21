@@ -33,7 +33,7 @@ if ($typeinfo == 1) {
         ->leftJoin('areab city_area', 'infob.city = city_area.id')
         ->where($where)
         // 限制查询字段为：id、title、city、cityid、times、pics、审核状态flag、拒绝理由ly以及城市和区县名称
-        ->field('infob.id, infob.title, infob.city, infob.cityid, infob.times, infob.price,infob.pics,infob.osspics,infob.oss,infob.sh,infob.flag,infob.ly,infob.iszd, city_area.fullname as city_name')
+        ->field('infob.id, infob.title, infob.city, infob.cityid, infob.times, infob.price,infob.pics,infob.osspics,infob.oss,infob.flag,infob.ly,infob.iszd, city_area.fullname as city_name')
         ->order('infob.iszd', 'DESC')
         ->order('infob.isrz', 'DESC')
         ->order('infob.fbtime', 'DESC')
