@@ -348,6 +348,25 @@ $zdPackages = [
       border: 1px solid rgba(239, 68, 68, 0.3);
     }
 
+    /* 拒绝理由 */
+    .publish-reason {
+      margin-top: 8px;
+      padding: 6px 8px;
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      border-radius: 4px;
+      font-size: 11px;
+      line-height: 1.4;
+      color: #fca5a5;
+      word-break: break-all;
+    }
+
+    .publish-reason-label {
+      color: #ef4444;
+      font-weight: 600;
+      margin-right: 2px;
+    }
+
     /* 分页样式 */
     .pagination {
       display: flex;
@@ -851,6 +870,16 @@ $zdPackages = [
         }
       });
       
+      // HTML转义，防止拒绝理由中的特殊字符破坏页面或XSS
+      function escapeHtml(str) {
+        return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
       // 异步加载数据函数
       function loadData() {
         $.ajax({
@@ -924,7 +953,13 @@ $zdPackages = [
           } else {
             pinBadgeHtml = `<button class="publish-pin-badge" onclick="openZdModal(${item.id}, ${currentCategory})">置顶</button>`;
           }
-          
+
+          // 审核拒绝时显示拒绝理由（ly字段），并做HTML转义防止XSS
+          var reasonHtml = '';
+          if (item.flag == 2 && item.ly && String(item.ly).replace(/^\s+|\s+$/g, '') !== '') {
+            reasonHtml = `<div class="publish-reason"><span class="publish-reason-label">拒绝理由：</span>${escapeHtml(item.ly)}</div>`;
+          }
+
           var cardHtml = `
             <div class="publish-item" data-status="${item.flag}">
               <div class="publish-image-container">
@@ -942,6 +977,7 @@ $zdPackages = [
                     <span class="publish-date">${item.city_name}</span>
                     <span class="publish-status ${statusClass}">${statusText}</span>
                   </div>
+                  ${reasonHtml}
                 </div>
               </a>
             </div>

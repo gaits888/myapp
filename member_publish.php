@@ -23,8 +23,8 @@ if ($typeinfo == 1) {
     $where = [];
     $where['infob.uid'] = $user_id;
     if (isset($postData['status']) && intval($postData['status']) >= 0) {
-        // 添加表前缀infob，使用键值对格式
-        $where['infob.sh'] = intval($postData['status']);
+        // 审核状态统一使用 flag 字段（与高端、包伴及前端展示保持一致）
+        $where['infob.flag'] = intval($postData['status']);
     }
     // 查询总数 - 为了不影响计数逻辑，单独执行计数查询
     $total =  db3('infob')->where($where)->count();
@@ -32,8 +32,8 @@ if ($typeinfo == 1) {
     $list = db3('infob')
         ->leftJoin('areab city_area', 'infob.city = city_area.id')
         ->where($where)
-        // 限制查询字段为：id、title、city、cityid、times、pics以及城市和区县名称
-        ->field('infob.id, infob.title, infob.city, infob.cityid, infob.times, infob.price,infob.pics,infob.osspics,infob.oss,infob.sh,infob.flag,infob.iszd, city_area.fullname as city_name')
+        // 限制查询字段为：id、title、city、cityid、times、pics、审核状态flag、拒绝理由ly以及城市和区县名称
+        ->field('infob.id, infob.title, infob.city, infob.cityid, infob.times, infob.price,infob.pics,infob.osspics,infob.oss,infob.sh,infob.flag,infob.ly,infob.iszd, city_area.fullname as city_name')
         ->order('infob.iszd', 'DESC')
         ->order('infob.isrz', 'DESC')
         ->order('infob.fbtime', 'DESC')
@@ -79,7 +79,7 @@ if ($typeinfo == 2) {
         ->leftJoin('areab city_area', 'gdb.cityid = city_area.id')
         ->where($where)
         // 限制查询字段为：id、title、city、cityid、times、pics以及城市和区县名称
-        ->field('gdb.id, gdb.uname as title, gdb.city, gdb.bdpics, gdb.cityid, gdb.times, gdb.price, gdb.pics,gdb.flag,gdb.iszd, city_area.fullname as city_name')
+        ->field('gdb.id, gdb.uname as title, gdb.city, gdb.bdpics, gdb.cityid, gdb.times, gdb.price, gdb.pics,gdb.flag,gdb.ly,gdb.iszd, city_area.fullname as city_name')
         ->order('gdb.iszd', 'DESC')
         ->order('gdb.isrz', 'DESC')
         ->order('gdb.fbtime', 'DESC')
@@ -136,7 +136,7 @@ if ($typeinfo == 3 || $typeinfo == 4) {
     $list = db3('byb')
         ->where($where)
         // 限制查询字段为：id、title、city、cityid、times、pics以及城市和区县名称
-        ->field('byb.id, byb.uname as title, byb.times, byb.pics,byb.osspics,byb.oss,byb.flag, byb.jg as city_name, byb.city as district_name,byb.iszd,byb.price')
+        ->field('byb.id, byb.uname as title, byb.times, byb.pics,byb.osspics,byb.oss,byb.flag,byb.ly, byb.jg as city_name, byb.city as district_name,byb.iszd,byb.price')
         ->order('byb.iszd', 'DESC')
         ->order('byb.isrz', 'DESC')
         ->order('byb.fbtime', 'DESC')
