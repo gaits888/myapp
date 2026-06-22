@@ -1043,6 +1043,25 @@ $is_b = $re_data['is_by2']; // 设为1显示伴友
             color: #f44336;
         }
 
+        /* 拒绝原因 */
+        .publish-reason {
+            margin-top: 8px;
+            padding: 6px 8px;
+            background: rgba(244, 67, 54, 0.1);
+            border: 1px solid rgba(244, 67, 54, 0.25);
+            border-radius: 4px;
+            font-size: 12px;
+            line-height: 1.4;
+            color: #d33;
+            word-break: break-all;
+        }
+
+        .publish-reason-label {
+            color: #f44336;
+            font-weight: 600;
+            margin-right: 2px;
+        }
+
         /* 复制list.html的分页样式 */
         /* 简化分页，只显示上一页、当前页码、下一页 */
         .pagination {

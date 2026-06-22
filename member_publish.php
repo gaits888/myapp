@@ -48,6 +48,40 @@ $postData = $_POST;
 // 初始化数据库连接
 $db = new DbOperation();
 
+// 将拒绝原因编号(ly)转换为对应的文字说明
+if (!function_exists('liyou')) {
+    function liyou($i) {
+        $t = '';
+        switch ((string)$i) {
+            case '0':  $t = "微信异常或无法添加";           break;
+            case '1':  $t = "qq异常或无法添加核实";         break;
+            case '2':  $t = "无法核实本人真实性";           break;
+            case '3':  $t = "无法核实信息真实性";           break;
+            case '4':  $t = "虚假信息或存在诈骗";           break;
+            case '5':  $t = "广告信息，需要置顶才能通过";    break;
+            case '6':  $t = "需完成真人认证，才能通过";      break;
+            case '7':  $t = "信息质量太差，请分享优质信息";   break;
+            case '8':  $t = "图片不符合规范，（图片要能看到脸，图片不能太爆露，图片上不能有联系方式.）";  break;
+            case '9':  $t = "广告营销信息，需升级为【高级会员】才能通过";  break;
+        }
+        return $t;
+    }
+}
+
+// 仅在审核拒绝(flag==2)时，将ly编号转换为文字说明，其它情况置空
+if (!function_exists('format_ly_list')) {
+    function format_ly_list(&$list) {
+        foreach ($list as &$item) {
+            if (isset($item['flag']) && $item['flag'] == 2 && isset($item['ly']) && $item['ly'] !== '' && $item['ly'] !== null) {
+                $item['ly'] = liyou($item['ly']);
+            } else {
+                $item['ly'] = '';
+            }
+        }
+        unset($item);
+    }
+}
+
 
 
 $typeinfo = 1;
@@ -85,8 +119,8 @@ if ($typeinfo == 1) {
     $list = $db3->table('infob')
         ->join('areab as city_area ON infob.city = city_area.id', 'LEFT')
         ->where($where)
-        // 限制查询字段为：id、title、city、cityid、times、pics以及城市和区县名称
-        ->field('infob.id, infob.title, infob.city, infob.cityid, infob.times, infob.pics,infob.osspics,infob.oss,infob.sh,infob.flag,infob.iszd, city_area.fullname as city_name')
+        // 限制查询字段为：id、title、city、cityid、times、pics、审核状态flag、拒绝原因ly以及城市和区县名称
+        ->field('infob.id, infob.title, infob.city, infob.cityid, infob.times, infob.pics,infob.osspics,infob.oss,infob.flag,infob.ly,infob.iszd, city_area.fullname as city_name')
         ->order($order)
         ->limit($offset, $pageSize)
         ->select();
@@ -102,6 +136,8 @@ if ($typeinfo == 1) {
         }
     }
     unset($item);
+    // 拒绝原因编号转文字
+    format_ly_list($list);
     // 构建返回数据
     $responseData = [
         'total' => $total,
@@ -149,7 +185,7 @@ if ($typeinfo == 2) {
         ->join('areab as city_area ON gdb.cityid = city_area.id', 'LEFT')
         ->where($where)
         // 限制查询字段为：id、title、city、cityid、times、pics以及城市和区县名称
-        ->field('gdb.id, gdb.uname as title, gdb.city, gdb.cityid, gdb.times, gdb.bdpics,gdb.pics,gdb.flag,gdb.iszd, city_area.fullname as city_name')
+        ->field('gdb.id, gdb.uname as title, gdb.city, gdb.cityid, gdb.times, gdb.bdpics,gdb.pics,gdb.flag,gdb.ly,gdb.iszd, city_area.fullname as city_name')
         ->order($order)
         ->limit($offset, $pageSize)
         ->select();
@@ -180,6 +216,8 @@ if ($typeinfo == 2) {
         }
     }
     unset($item);
+    // 拒绝原因编号转文字
+    format_ly_list($list);
     // 构建返回数据
     $responseData = [
         'total' => $total,
@@ -239,7 +277,7 @@ if ($typeinfo == 3 || $typeinfo == 4) {
     $list = $db3->table('byb')
         ->where($where)
         // 限制查询字段为：id、title、city、cityid、times、pics以及城市和区县名称
-        ->field('byb.id, byb.uname as title, byb.times, byb.pics,byb.osspics,byb.oss,byb.flag, byb.jg as city_name, byb.city as district_name,byb.iszd')
+        ->field('byb.id, byb.uname as title, byb.times, byb.pics,byb.osspics,byb.oss,byb.flag,byb.ly, byb.jg as city_name, byb.city as district_name,byb.iszd')
         ->order($order)
         ->limit($offset, $pageSize)
         ->select();
@@ -254,6 +292,8 @@ if ($typeinfo == 3 || $typeinfo == 4) {
         }
     }
     unset($item);
+    // 拒绝原因编号转文字
+    format_ly_list($list);
     // 构建返回数据
     $responseData = [
         'total' => $total,
