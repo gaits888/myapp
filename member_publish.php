@@ -1,99 +1,118 @@
 <?php
 /**
- * 用户个人发布信息列表页面
+ * 信息查询接口(indexinfo.php)
+ * 用于处理信息查询请求，支持关键词搜索、排序和分页
+ * 说明：city代表市、cityid代表区域
  */
 
 // 引入load.php加载必要的文件
-require_once '../../load_api.php';
+require_once '../../load.php';
 
-// 获取POST数据中的分页参数
-$page = isset($postData['page']) ? intval($postData['page']) : 1;
-$pageSize = isset($postData['pageSize']) ? intval($postData['pageSize']) : 10;
-$typeinfo = isset($postData['infotype']) ? intval($postData['infotype']) : 1;
+// 确保只接受POST请求
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    errorResponse('只接受POST请求');
+}
 
 
-//大分类
+$userToken = Cookie::get('userToken');
+
+// 判断token是否存在
+if (empty($userToken)) {
+    errorResponse('用户未登录，请先登录');
+}
+
+// 解密用户token
+$userId = decryptUserToken($userToken);
+
+// 判断token解密是否成功
+if ($userId === false) {
+    errorResponse('用户身份验证失败，请重新登录');
+}
+// 初始化数据库连接
+$dbuser = new DbOperation();
+$db3 = new DbOperation3();
+// 根据用户ID查询用户信息
+$userInfo = $dbuser->table('userb')
+    ->where(['id' => $userId])
+    ->find();
+
+// 判断用户是否存在
+if (empty($userInfo)) {
+    errorResponse('用户不存在');
+}
+
+
+// 获取POST数据
+$postData = $_POST;
+// var_dump($postData);die;
+// 初始化数据库连接
+$db = new DbOperation();
+
+
+
+$typeinfo = 1;
 if (isset($postData['typeinfo']) && in_array($postData['typeinfo'],[1,2,3,4])) {
     $typeinfo = $postData['typeinfo'];
 }
-$user_vipclass =  db('userb')->where('id', $user_id)->value('vipclass');
-
-// 将拒绝原因编号(ly)转换为对应的文字说明
-if (!function_exists('liyou')) {
-    function liyou($i) {
-        $t = '';
-        switch ((string)$i) {
-            case '0':  $t = "微信异常或无法添加";           break;
-            case '1':  $t = "qq异常或无法添加核实";         break;
-            case '2':  $t = "无法核实本人真实性";           break;
-            case '3':  $t = "无法核实信息真实性";           break;
-            case '4':  $t = "虚假信息或存在诈骗";           break;
-            case '5':  $t = "广告信息，需要置顶才能通过";    break;
-            case '6':  $t = "需完成真人认证，才能通过";      break;
-            case '7':  $t = "信息质量太差，请分享优质信息";   break;
-            case '8':  $t = "图片不符合规范，（图片要能看到脸，图片不能太爆露，图片上不能有联系方式.）";  break;
-            case '9':  $t = "广告营销信息，需升级为【高级会员】才能通过";  break;
-        }
-        return $t;
-    }
-}
-
-// 仅在审核拒绝(flag==2)时，将ly编号转换为文字说明，其它情况置空
-if (!function_exists('format_ly_list')) {
-    function format_ly_list(&$list) {
-        foreach ($list as &$item) {
-            if (isset($item['flag']) && $item['flag'] == 2 && isset($item['ly']) && $item['ly'] !== '' && $item['ly'] !== null) {
-                $item['ly'] = liyou($item['ly']);
-            } else {
-                $item['ly'] = '';
-            }
-        }
-        unset($item);
-    }
-}
 
 if ($typeinfo == 1) {
+
     // 构建查询条件
     $where = [];
-    $where['infob.uid'] = $user_id;
+    $where['infob.uid'] = $userId;
+
+    $order = 'infob.iszd desc,infob.fbtime desc';
+
     if (isset($postData['status']) && intval($postData['status']) >= 0) {
-        // 审核状态统一使用flag字段（与高端、包伴及前端展示保持一致）
+
+        // 添加表前缀infob，使用键值对格式
         $where['infob.flag'] = intval($postData['status']);
     }
+    // var_dump($where);die;
+
+    // 分页参数
+    $page = isset($postData['page']) && intval($postData['page']) > 0 ? intval($postData['page']) : 1;
+    $pageSize = isset($postData['pageSize']) && intval($postData['pageSize']) > 0 ? intval($postData['pageSize']) : 10;
+    $offset = ($page - 1) * $pageSize;
+
     // 查询总数 - 为了不影响计数逻辑，单独执行计数查询
-    $total =  db3('infob')->where($where)->count();
-    // 查询数据 - 联合查询areab表获取城市和区县名称
-    $list = db3('infob')
-        ->leftJoin('areab city_area', 'infob.city = city_area.id')
+    $total = $db3->table('infob')
+        ->join('areab as city_area ON infob.city = city_area.id', 'LEFT')
         ->where($where)
-        // 限制查询字段为：id、title、city、cityid、times、pics、审核状态flag、拒绝原因ly以及城市和区县名称
-        ->field('infob.id, infob.title, infob.city, infob.cityid, infob.times, infob.price,infob.pics,infob.osspics,infob.oss,infob.flag,infob.ly,infob.iszd, city_area.fullname as city_name')
-        ->order('infob.iszd', 'DESC')
-        ->order('infob.isrz', 'DESC')
-        ->order('infob.fbtime', 'DESC')
-        ->page($page, $pageSize)
+        ->count();
+
+    // 查询数据 - 联合查询areab表获取城市和区县名称
+    $list = $db3->table('infob')
+        ->join('areab as city_area ON infob.city = city_area.id', 'LEFT')
+        ->where($where)
+        // 限制查询字段为：id、title、city、cityid、times、pics以及城市和区县名称
+        ->field('infob.id, infob.title, infob.city, infob.cityid, infob.times, infob.pics,infob.osspics,infob.oss,infob.sh,infob.flag,infob.iszd, city_area.fullname as city_name')
+        ->order($order)
+        ->limit($offset, $pageSize)
         ->select();
     // echo $db->getLastSql();
     // 处理图片字段：从pics中提取第一张图片到pic字段
     foreach ($list as &$item) {
-        // pics可能包含多个图片，用|分隔，提取第一张
+        
         $item['pic'] = z_imgurl($item['pics'],$item['osspics'],1,$item['oss']);
-        $item['vipclass'] = $user_vipclass;
+        $item['vipclass'] = $userInfo['vipclass'];
         $item['infotype'] = 1;
+        if ($postData['status'] != 1) {
+            $item['times'] = 0;
+        }
     }
     unset($item);
-    // 拒绝原因编号转文字
-    format_ly_list($list);
     // 构建返回数据
     $responseData = [
         'total' => $total,
         'page' => $page,
         'pageSize' => $pageSize,
         'editurl' => 'publish_edit',
-        'seeurl' => 'showinfo',
+        'seeurl' => 'publish_detail',
         'totalPages' => ceil($total / $pageSize),
         'list' => $list
     ];
+
     // 返回成功响应
     successResponse($responseData, 'success');
 }
@@ -101,112 +120,150 @@ if ($typeinfo == 1) {
 
 //高端发布
 if ($typeinfo == 2) {
+
     // 构建查询条件
     $where = [];
-    $where['gdb.uid'] = $user_id;
+    $where['gdb.uid'] = $userId;
+
+    $order = 'gdb.iszd desc,gdb.fbtime desc';
+
     if (isset($postData['status']) && intval($postData['status']) >= 0) {
+
         // 添加表前缀gdb，使用键值对格式
         $where['gdb.flag'] = intval($postData['status']);
     }
+    // var_dump($where);die;
+
+    // 分页参数
+    $page = isset($postData['page']) && intval($postData['page']) > 0 ? intval($postData['page']) : 1;
+    $pageSize = isset($postData['pageSize']) && intval($postData['pageSize']) > 0 ? intval($postData['pageSize']) : 10;
+    $offset = ($page - 1) * $pageSize;
+
     // 查询总数 - 为了不影响计数逻辑，单独执行计数查询
-    $total = db3('gdb')->where($where)->count();
+    $total = $db3->table('gdb')
+        ->where($where)
+        ->count();
+
     // 查询数据 - 联合查询areab表获取城市和区县名称
-    $list = db3('gdb')
-        ->leftJoin('areab city_area', 'gdb.cityid = city_area.id')
+    $list = $db3->table('gdb')
+        ->join('areab as city_area ON gdb.cityid = city_area.id', 'LEFT')
         ->where($where)
         // 限制查询字段为：id、title、city、cityid、times、pics以及城市和区县名称
-        ->field('gdb.id, gdb.uname as title, gdb.city, gdb.bdpics, gdb.cityid, gdb.times, gdb.price, gdb.pics,gdb.flag,gdb.ly,gdb.iszd, city_area.fullname as city_name')
-        ->order('gdb.iszd', 'DESC')
-        ->order('gdb.isrz', 'DESC')
-        ->order('gdb.fbtime', 'DESC')
-        ->page($page, $pageSize)
+        ->field('gdb.id, gdb.uname as title, gdb.city, gdb.cityid, gdb.times, gdb.bdpics,gdb.pics,gdb.flag,gdb.iszd, city_area.fullname as city_name')
+        ->order($order)
+        ->limit($offset, $pageSize)
         ->select();
+    // echo $db->getLastSql();
     // 处理图片字段：从pics中提取第一张图片到pic字段
     foreach ($list as &$item) {
-        // pics可能包含多个图片，用|分隔，提取第一张
-        // $item['pic'] = z_imgurl($item['bdpics'],$item['pics'],2);
 
-        //高端使用本地第一张
         if (isset($item['bdpics']) && !empty($item['bdpics'])) {
             $picsArray = explode('|', $item['bdpics']);
-            $item['pic']  = !empty($picsArray[0]) ? $picsArray[0] : '';
+            $img2 = !empty($picsArray[0]) ? $picsArray[0] : '';
         } else {
-            $item['pic']  = '';
+            $img2 = '';
         }
-        $item['vipclass'] = $user_vipclass;
+
+        if (substr($img2,0,1) === '/') {
+            $re= !empty($img2) ? $img2 : '';
+        }else{
+            $re = !empty($img2) ? '/'.$img2 : '';
+        }
+
+        $item['pic'] =  $re;
+
+        // $item['pic'] = z_imgurl($item['bdpics'],$item['pics'],2);
+        $item['vipclass'] = $userInfo['vipclass'];
         $item['infotype'] = 2;
+        if ($postData['status'] != 1) {
+            $item['times'] = 0;
+        }
     }
     unset($item);
-    // 拒绝原因编号转文字
-    format_ly_list($list);
     // 构建返回数据
     $responseData = [
         'total' => $total,
         'page' => $page,
         'pageSize' => $pageSize,
         'editurl' => 'highend_edit',
-        'seeurl' => 'jiaoyou',
+        'seeurl' => 'highend_detail',
         'totalPages' => ceil($total / $pageSize),
         'list' => $list
     ];
+
     // 返回成功响应
     successResponse($responseData, 'success');
 }
 
-
-//包伴发布
+//高端发布
 if ($typeinfo == 3 || $typeinfo == 4) {
 
     // 构建查询条件
     $where = [];
-    $where['byb.uid'] = $user_id;
+
     if ($typeinfo == 3 ) {
-        $seeurl = 'banyou';
         $where['byb.typeid'] = 0;
+
+        $editurl = 'by_edit';
+        $seeurl = 'by_detail';
+        $infotype =3;
     }else{
         $where['byb.typeid'] = 1;
-        $seeurl = 'baoyang';
+        $editurl = 'by_edit';
+        $seeurl = 'by_detail';
+        $infotype =4;
     }
 
+    $where['byb.uid'] = $userId;
+
+    $order = 'byb.iszd desc,byb.fbtime desc';
 
     if (isset($postData['status']) && intval($postData['status']) >= 0) {
+
         // 添加表前缀byb，使用键值对格式
         $where['byb.flag'] = intval($postData['status']);
     }
+    // var_dump($where);die;
+
+    // 分页参数
+    $page = isset($postData['page']) && intval($postData['page']) > 0 ? intval($postData['page']) : 1;
+    $pageSize = isset($postData['pageSize']) && intval($postData['pageSize']) > 0 ? intval($postData['pageSize']) : 10;
+    $offset = ($page - 1) * $pageSize;
+// var_dump($where);
     // 查询总数 - 为了不影响计数逻辑，单独执行计数查询
-    $total = db3('byb')->where($where)->count();
+    $total = $db3->table('byb')
+        ->where($where)
+        ->count();
+
     // 查询数据 - 联合查询areab表获取城市和区县名称
-    $list = db3('byb')
+    $list = $db3->table('byb')
         ->where($where)
         // 限制查询字段为：id、title、city、cityid、times、pics以及城市和区县名称
-        ->field('byb.id, byb.uname as title, byb.times, byb.pics,byb.osspics,byb.oss,byb.flag,byb.ly, byb.jg as city_name, byb.city as district_name,byb.iszd,byb.price')
-        ->order('byb.iszd', 'DESC')
-        ->order('byb.isrz', 'DESC')
-        ->order('byb.fbtime', 'DESC')
-        ->page($page, $pageSize)
+        ->field('byb.id, byb.uname as title, byb.times, byb.pics,byb.osspics,byb.oss,byb.flag, byb.jg as city_name, byb.city as district_name,byb.iszd')
+        ->order($order)
+        ->limit($offset, $pageSize)
         ->select();
     // echo $db->getLastSql();
     // 处理图片字段：从pics中提取第一张图片到pic字段
     foreach ($list as &$item) {
-        // pics可能包含多个图片，用|分隔，提取第一张
         $item['pic'] = z_imgurl($item['pics'],$item['osspics'],3,$item['oss']);
-        $item['vipclass'] = $user_vipclass;
-        $item['infotype'] = $typeinfo;
+        $item['vipclass'] = $userInfo['vipclass'];
+        $item['infotype'] = $infotype;
+        if ($postData['status'] != 1) {
+            $item['times'] = 0;
+        }
     }
     unset($item);
-    // 拒绝原因编号转文字
-    format_ly_list($list);
     // 构建返回数据
     $responseData = [
         'total' => $total,
         'page' => $page,
         'pageSize' => $pageSize,
-        'editurl' => 'by_edit',
+        'editurl' => $editurl,
         'seeurl' => $seeurl,
         'totalPages' => ceil($total / $pageSize),
         'list' => $list
     ];
-
 
     // 返回成功响应
     successResponse($responseData, 'success');
