@@ -1,723 +1,198 @@
 <?php 
 include_once 'loaduser.php';
 include_once 'config.php';
+$pageTitle = "我的发布";
+$history_url = 'user.html';
 
-$page_title = "我的发布";
-$history_url = '/user.html';
-
-$zdPackages = [
-    ['duration' => '一个月', 'price' => 298, 'months' => 1],
-    ['duration' => '一季度', 'price' => 498, 'months' => 3],
-    ['duration' => '半年', 'price' => 798, 'months' => 6],
-    ['duration' => '一年', 'price' => 998, 'months' => 12]
-];
 ?>
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title><?php echo $webname.'-'.$page_title; ?></title>
 <meta name="author" content="<?php echo $webname; ?>" />
-<meta name="keywords" content="<?php echo $webname.'-'.$page_title; ?>">
-<meta name="description" content="<?php echo $webname.'-'.$page_title; ?>">
-<link href="/favicon.ico" rel="shortcut icon"/>
+<meta name="keywords" content="我的发布_<?php echo $webname; ?>">
+<meta name="description" content="我的发布_<?php echo $webname; ?>">
+<title>我的发布_<?php echo $webname; ?></title>
 <link rel="stylesheet" href="/css/footer.css">
+<link rel="stylesheet" href="/css/comm.css">
+<link rel="stylesheet" href="/css/member_publish.css">
 <style>
-    /* 全局样式重置 */
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
-      background: linear-gradient(135deg, #0d0d19 0%, #1a1a2e 50%, #16213e 100%);
-      color: #fff;
-/*      min-height: 100vh;*/
-      overflow-x: hidden;
-      padding-top: 50px;
-    }
-
-    /* 页面头部导航 */
-    
-    /* 添加大分类标签栏 */
-    .main-category-section {
-/*      padding: 10px;*/
-      background: rgba(15, 20, 25, 0.6);
-      backdrop-filter: blur(10px);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .main-category-tabs {
-      display: flex;
-      justify-content: center;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
-      padding: 10px;
-      background: linear-gradient(135deg, rgba(30, 30, 50, 0.6), rgba(20, 20, 35, 0.6));
-      border-radius: 5px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-    }
-
-    .main-category-tabs::-webkit-scrollbar {
-      display: none;
-    }
-
-    .main-category-btn {
-      width: 23%;
-      padding: 8px 10px;
-      border: none;
-      border-radius: 5px;
-      font-size: 14px;
-      cursor: pointer;
-      transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-      background: linear-gradient(145deg, rgba(45, 45, 65, 0.8), rgba(30, 30, 45, 0.8));
-      color: rgba(255, 255, 255, 0.7);
-      white-space: nowrap;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-      letter-spacing: 0.5px;
-      margin-left: 5px;
-      margin-right:5px;
-      text-align: center;
-    }
-
-    .main-category-btn:hover {
-      background: linear-gradient(145deg, rgba(60, 60, 85, 0.9), rgba(45, 45, 65, 0.9));
-      border-color: rgba(139, 92, 246, 0.4);
-      box-shadow: 0 4px 16px rgba(139, 92, 246, 0.25);
-    }
-
-    .main-category-btn.active {
-    background: linear-gradient(135deg, rgb(246 92 239 / 50%) 0%, rgb(124 58 237 / 0%) 100%);
-    border: 0;
-      color: #fff;
-      border: 0;
-/*      box-shadow: 0 6px 24px rgba(139, 92, 246, 0.5), 0 0 0 3px rgba(139, 92, 246, 0.15);*/
-      border-color: rgba(139, 92, 246, 0.6);
-/*      transform: translateY(-2px) scale(1.05);*/
-    }
-
-    /* 发布容器 */
-    .publish-container {
-/*      padding: 16px;*/
-      background: transparent;
-      min-height: calc(100vh - 56px - 70px);
-    }
-
-    /* 重新调整筛选标签样式，保持与大分类一致的风格 */
-    .filter-tabs {
-      display: flex;
-      justify-content: center;
-      padding: 10px;
-/*      margin-bottom: 10px;*/
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
-      backdrop-filter: blur(10px);
-      border-radius: 5px;
-      box-shadow: 0 3px 15px rgba(0, 0, 0, 0.25);
-    }
-
-    .filter-tabs::-webkit-scrollbar {
-      display: none;
-    }
-
-    .filter-tab {
-      width: 23%;
-      text-align: center;
-      padding: 8px 0px 8px 0px;
-      color: rgba(255, 255, 255, 0.7);
-      font-size: 13px;
-      cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      position: relative;
-      white-space: nowrap;
-      border-radius: 5px;
-      background: linear-gradient(145deg, rgba(40, 40, 60, 0.6), rgba(30, 30, 45, 0.6));
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-      letter-spacing: 0.3px;
-      margin-left: 5px;
-      margin-right: 5px;
-    }
-
-    .filter-tab:hover {
-      background: linear-gradient(145deg, rgba(55, 55, 75, 0.7), rgba(40, 40, 60, 0.7));
-      border-color: rgba(139, 92, 246, 0.35);
-      box-shadow: 0 3px 12px rgba(139, 92, 246, 0.2);
-    }
-
-    .filter-tab.active {
-      background: linear-gradient(135deg, rgb(246 92 239 / 50%) 0%, rgb(124 58 237 / 0%) 100%);
-      border: none;
-      color: #fff;
-      border-color: rgba(139, 92, 246, 0.5);
-    }
-
-    /* 发布列表 - 2列网格布局 */
-    .publish-list {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
-      margin-bottom: 10px;
-    }
-
-    /* 发布项 */
-    .publish-item {
-      background: linear-gradient(135deg, rgba(26, 26, 46, 0.9), rgba(45, 45, 68, 0.9));
-      backdrop-filter: blur(10px);
-      border-radius: 5px;
-      overflow: hidden;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-      transition: transform 0.3s, box-shadow 0.3s;
-      position: relative;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .publish-item:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
-    }
-
-    /* 发布图片容器 */
-    .publish-image-container {
-      position: relative;
-      width: 100%;
-      padding-top: 100%; /* 1:1 宽高比 */
-      overflow: hidden;
-    }
-
-    .publish-image {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transition: transform 0.5s;
-    }
-
-    .publish-item:hover .publish-image {
-      transform: scale(1.08);
-    }
-
-    /* 修改按钮 */
-    .publish-edit-badge {
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      background: rgba(246 92 239 / 50%);
-      color: white;
-      padding: 4px 10px;
-      border-radius: 5px;
-      font-size: 11px;
-      font-weight: 500;
-      text-decoration: none;
-      z-index: 10;
-      transition: all 0.3s;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4);
-    }
-
-    .publish-edit-badge:hover {
-      background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
-      transform: scale(1.05);
-      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.6);
-    }
-
-    /* 置顶按钮 */
-    .publish-pin-badge {
-      opacity:1;
-      position: absolute;
-      top: 8px;
-      left: 8px;
-      background: rgba(233 89 43 / 80%);
-      color: white;
-      padding: 4px 10px;
-      border-radius: 5px;
-      font-size: 11px;
-      font-weight: 500;
-      cursor: pointer;
-      z-index: 10;
-      transition: all 0.3s;
-      backdrop-filter: blur(10px);
-/*      box-shadow: 0 2px 8px rgba(255, 107, 107, 0.5);*/
-      border: none;
-    }
-
-    .publish-pin-badgeo {
-      opacity:1;
-      position: absolute;
-      top: 8px;
-      left: 8px;
-      background:linear-gradient(135deg, #ee5a6f 0%, rgb(255 107 107 / 76%) 100%);
-      color: white;
-      padding: 4px 10px;
-      border-radius: 5px;
-      font-size: 11px;
-      font-weight: 500;
-      cursor: pointer;
-      z-index: 10;
-      transition: all 0.3s;
-      backdrop-filter: blur(10px);
-/*      box-shadow: 0 2px 8px rgba(255, 107, 107, 0.5);*/
-      border: none;
-    }
-
-    .publish-pin-badge:hover {
-      background: linear-gradient(135deg, #ee5a6f 0%, #6d28d9 100%);
-      transform: scale(1.05);
-      box-shadow: 0 4px 12px rgba(255, 107, 107, 0.7);
-    }
-
-    .publish-pin-badge.active {
-      cursor: not-allowed;
-      opacity: 0.7;
-    }
-
-    /* 发布信息 */
-    .publish-info {
-      padding: 14px;
-      display: flex;
-      flex-direction: column;
-      background: rgba(15, 20, 25, 0.5);
-    }
-
-    .publish-link {
-      text-decoration: none;
-      color: inherit;
-    }
-
-    .publish-title {
-      font-size: 14px;
-      color: #fff;
-      line-height: 1.4;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      margin-bottom: 5px;
-    }
-
-    .publish-price {
-      font-size: 14px;
-/*      font-weight: 600;*/
-      background: linear-gradient(135deg, #8b5cf6, #6d28d9);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      line-height: 1;
-    }
-
-    .publish-meta {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 12px;
-      color: rgba(255, 255, 255, 0.6);
-      margin-top: auto;
-    }
-
-    .publish-date {
-      font-weight: 400;
-    }
-
-    .publish-status {
-      padding: 2px 8px;
-      border-radius: 3px;
-      font-size: 11px;
-    }
-
-    /* 不同状态的样式 */
-    .status-approved {
-      background: rgba(34, 197, 94, 0.2);
-      color: #22c55e;
-      border: 1px solid rgba(34, 197, 94, 0.3);
-    }
-
-    .status-reviewing {
-      background: rgba(249, 115, 22, 0.2);
-      color: #f97316;
-      border: 1px solid rgba(249, 115, 22, 0.3);
-    }
-
-    .status-rejected {
-      background: rgba(239, 68, 68, 0.2);
-      color: #ef4444;
-      border: 1px solid rgba(239, 68, 68, 0.3);
-    }
-
-    /* 拒绝理由 */
-    .publish-reason {
-      margin-top: 8px;
-      padding: 6px 8px;
-      background: rgba(239, 68, 68, 0.12);
-      border: 1px solid rgba(239, 68, 68, 0.25);
-      border-radius: 4px;
-      font-size: 11px;
-      line-height: 1.4;
-      color: #fca5a5;
-      word-break: break-all;
-    }
-
-    .publish-reason-label {
-      color: #ef4444;
-      font-weight: 600;
-      margin-right: 2px;
-    }
-
-    /* 分页样式 */
-    .pagination {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 10px 0;
-    }
-
-    .page-btn {
-      min-width: 36px;
-      height: 36px;
-      padding: 0 12px;
-      background: rgba(26, 32, 44, 0.8);
-      backdrop-filter: blur(10px);
-      border: 1.5px solid rgba(255, 255, 255, 0.1);
-      border-radius: 5px;
-      font-size: 14px;
-      font-weight: 500;
-      color: rgba(255, 255, 255, 0.8);
-      cursor: pointer;
-      transition: all 0.25s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-left: 5px;
-      margin-right: 5px;
-    }
-
-    .page-btn:hover:not(:disabled) {
-      border-color: #8b5cf6;
-      color: #8b5cf6;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
-    }
-
-    .page-btn.active {
-      background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 50%, #6d28d9 100%);
-      color: white;
-      border-color: transparent;
-      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.5);
-      font-weight: 600;
-    }
-
-    .page-btn:active {
-      transform: translateY(0) scale(0.96);
-    }
-
-    .page-btn.dots {
-      border: none;
-      background: transparent;
-      cursor: default;
-      pointer-events: none;
-      color: rgba(255, 255, 255, 0.4);
-      min-width: 24px;
-    }
-
-    .page-btn.prev,
-    .page-btn.next {
-      padding: 0 10px;
-      font-size: 14px;
-    }
-
-    .page-btn:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-      pointer-events: none;
-    }
-
-    /* 无数据状态 */
-    .empty-state {
-      text-align: center;
-      padding: 60px 20px;
-      color: rgba(255, 255, 255, 0.5);
-      grid-column: 1 / -1;
-    }
-
-    .empty-state-icon {
-      width: 60px;
-      height: 60px;
-      margin: 0 auto 2px;
-      opacity: 0.4;
-    }
-
-    .empty-state-text {
-      font-size: 15px;
-      margin-bottom: 16px;
-    }
-
-    .empty-state-button {
-      background: linear-gradient(135deg, #6366f1, #4f46e5);
-      color: white;
-      border: none;
-      padding: 10px 24px;
-      border-radius: 5px;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.3s;
-    }
-
-    .empty-state-button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(99, 102, 241, 0.5);
-    }
-
-    .page-info {
-      text-align: center;
-      color: rgba(255, 255, 255, 0.5);
-      margin-top: 10px;
-      font-size: 13px;
-    }
-
-    /* 加载状态样式 */
-    .loading {
-      text-align: center;
-      padding: 40px 0;
-      color: rgba(255, 255, 255, 0.5);
-      font-size: 14px;
-      grid-column: 1 / -1;
-    }
-
-    /* 置顶弹窗样式 */
-    /* 置顶弹窗遮罩层 */
-    .zd-modal-overlay {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.7);
-      backdrop-filter: blur(5px);
-      z-index: 9998;
-      animation: fadeIn 0.3s ease;
-    }
-
-    .zd-modal-overlay.active {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    /* 置顶弹窗容器 */
-    .zd-modal {
-      background: linear-gradient(135deg, rgba(26, 26, 46, 0.95), rgba(45, 45, 68, 0.95));
-      backdrop-filter: blur(20px);
-      border-radius: 5px;
-      padding: 10px;
-      width: 90%;
-      max-width: 400px;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-      border: 1px solid rgba(139, 92, 246, 0.3);
-      animation: slideUp 0.3s ease;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-
-    @keyframes slideUp {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    .zd-modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-    }
-
-    .zd-modal-title {
-      font-size: 18px;
-      font-weight: 600;
-      color: #fff;
-      background: linear-gradient(135deg, #8b5cf6, #a78bfa);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .zd-modal-close {
-      background: none;
-      border: none;
-      color: rgba(255, 255, 255, 0.6);
-      font-size: 24px;
-      cursor: pointer;
-      padding: 0;
-      width: 32px;
-      height: 32px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 50%;
-      transition: all 0.3s;
-    }
-
-    .zd-modal-close:hover {
-      background: rgba(255, 255, 255, 0.1);
-      color: #fff;
-    }
-
-    .zd-packages {
-      display: flex;
-      flex-direction: column;
-      margin-bottom: 10px;
-    }
-
-    .zd-package-item {
-      background: linear-gradient(135deg, rgba(30, 30, 50, 0.6), rgba(45, 45, 68, 0.6));
-      border: 2px solid rgba(139, 92, 246, 0.2);
-      border-radius: 5px;
-      padding: 16px;
-      cursor: pointer;
-      transition: all 0.3s;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-
-    .zd-package-item:hover {
-      border-color: rgba(139, 92, 246, 0.5);
-      background: linear-gradient(135deg, rgba(40, 40, 60, 0.7), rgba(55, 55, 78, 0.7));
-      transform: translateX(4px);
-    }
-
-    .zd-package-item.selected {
-      border-color: #8b5cf6;
-      background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(124, 58, 237, 0.2));
-      box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
-    }
-
-    .zd-package-duration {
-      font-size: 16px;
-      font-weight: 600;
-      color: #fff;
-    }
-
-    .zd-package-price {
-      font-size: 18px;
-      font-weight: 700;
-      background: linear-gradient(135deg, #8b5cf6, #a78bfa);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .zd-modal-footer {
-      display: flex;
-    }
-
-    .zd-btn {
-      flex: 1;
-      padding: 12px;
-      border: none;
-      border-radius: 5px;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s;
-      
-    }
-
-    .zd-btn-cancel {
-      background: rgba(255, 255, 255, 0.1);
-      color: rgba(255, 255, 255, 0.8);
-      margin-right: 10px;
-    }
-
-    .zd-btn-cancel:hover {
-      background: rgba(255, 255, 255, 0.15);
-    }
-
-    .zd-btn-confirm {
-      background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 50%, #6d28d9 100%);
-      color: #fff;
-      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
-    }
-
-    .zd-btn-confirm:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(139, 92, 246, 0.6);
-    }
-
-    .zd-btn-confirm:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    /* 响应式设计 */
-    @media (max-width: 375px) {
-      .main-category-tabs,
-      .filter-tabs {
-      }
-      
-      .publish-list {
-        gap: 10px;
-      }
-      
-      .publish-info {
-        padding: 8px;
-      }
-      
-      .publish-title {
-        font-size: 13px;
-      }
-      
-      .publish-price {
-        font-size: 15px;
-      }
-    }
-  </style>
+html, body {
+	max-width: 100%;
+	overflow-x: hidden;
+}
+
+.main-category-section {
+	padding: 10px;
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	box-sizing: border-box;
+	width: 100%;
+	max-width: 100%;
+}
+
+.menu-row {
+	display: -webkit-box;
+	display: -webkit-flex;
+	display: -ms-flexbox;
+	display: flex;
+	-webkit-flex-wrap: wrap;
+	-ms-flex-wrap: wrap;
+	flex-wrap: wrap;
+	margin-bottom: 5px;
+	margin-left: -4px;
+	margin-right: -4px;
+}
+
+/* 一级菜单按钮 - 粉红色边框 */
+.menu-row-primary .menu-btn {
+	-webkit-box-flex: 1;
+	-webkit-flex: 1;
+	-ms-flex: 1;
+	flex: 1;
+	min-width: 0;
+	margin: 4px;
+	padding: 8px 8px;
+	font-size: 14px;
+	color: #333;
+	background: #fff;
+	border: 1px solid #e0e0e0;
+	-webkit-border-radius: 6px;
+	-moz-border-radius: 6px;
+	border-radius: 25px;
+	cursor: pointer;
+	-webkit-transition: all 0.3s ease;
+	-moz-transition: all 0.3s ease;
+	-o-transition: all 0.3s ease;
+	transition: all 0.3s ease;
+	text-align: center;
+	outline: none;
+	-webkit-tap-highlight-color: transparent;
+	-webkit-appearance: none;
+}
+
+/* 二级菜单按钮 - 紫色边框 */
+.menu-row-secondary .menu-btn {
+	-webkit-box-flex: 1;
+	-webkit-flex: 1;
+	-ms-flex: 1;
+	flex: 1;
+	min-width: 0;
+	margin: 4px;
+	padding: 8px 8px;
+	font-size: 14px;
+	color: #333;
+	background: #fff;
+	border: 1px solid #e0e0e0;
+	-webkit-border-radius: 6px;
+	-moz-border-radius: 6px;
+	border-radius: 25px;
+	cursor: pointer;
+	-webkit-transition: all 0.3s ease;
+	-moz-transition: all 0.3s ease;
+	-o-transition: all 0.3s ease;
+	transition: all 0.3s ease;
+	text-align: center;
+	outline: none;
+	-webkit-tap-highlight-color: transparent;
+	-webkit-appearance: none;
+}
+
+.menu-row-primary .menu-btn:hover {
+	background: rgba(232, 74, 122, 0.1);
+	color: #ff6b8a;
+}
+
+.menu-row-secondary .menu-btn:hover {
+	background: rgba(168, 85, 199, 0.1);
+	color: #c084fc;
+}
+
+.menu-btn:active {
+	opacity: 0.8;
+}
+
+/* 一级菜单选中样式 - 粉红色渐变 */
+.menu-row-primary .menu-btn.active {
+	background: -webkit-linear-gradient(315deg, #ff6b8a 0%, #e84a7a 100%);
+	background: -moz-linear-gradient(315deg, #ff6b8a 0%, #e84a7a 100%);
+	background: -o-linear-gradient(315deg, #ff6b8a 0%, #e84a7a 100%);
+	background: linear-gradient(135deg, #ff6b8a 0%, #e84a7a 100%);
+	border: 1px solid transparent;
+	color: #fff;
+	font-weight: 500;
+}
+
+/* 二级菜单选中样式 - 紫色渐变 */
+.menu-row-secondary .menu-btn.active {
+	background: -webkit-linear-gradient(315deg, #a855c7 0%, #7c3aed 100%);
+	background: -moz-linear-gradient(315deg, #a855c7 0%, #7c3aed 100%);
+	background: -o-linear-gradient(315deg, #a855c7 0%, #7c3aed 100%);
+	background: linear-gradient(135deg, #a855c7 0%, #7c3aed 100%);
+	border: 1px solid transparent;
+	color: #fff;
+	font-weight: 500;
+}
+
+/* PC端样式 */
+@media screen and (min-width: 768px) {
+	.main-category-section {
+		padding: 15px 20px;
+	}
+	
+	.menu-row-primary .menu-btn,
+	.menu-row-secondary .menu-btn {
+		padding: 10px 16px;
+		font-size: 15px;
+		color: #333;
+	}
+}
+
+/* 小屏手机适配 */
+@media screen and (max-width: 380px) {
+	.main-category-section {
+		padding: 6px;
+	}
+	
+	.menu-row-primary .menu-btn,
+	.menu-row-secondary .menu-btn {
+		padding: 6px 4px;
+		font-size: 13px;
+		color: #333;
+	}
+}
+</style>
 </head>
 <body>
   <!-- 页面头部 -->
+  <?php include_once 'webphp/zd_money.php'; ?>
  <?php include_once 'comm/header.php'; ?>
-
   <!-- 添加大分类选择区 -->
-  <div class="main-category-section">
-    <div class="main-category-tabs">
-      <div class="main-category-btn active" data-category="1">论坛</div>
-      <div class="main-category-btn" data-category="2">高端</div>
-      <div class="main-category-btn" data-category="3">伴游</div>
-      <div class="main-category-btn" data-category="4">包养</div>
+  <div class="main-category-section" style="margin-top:0px;">
+      
+
+    <div class="menu-row menu-row-primary" id="categoryMenu">
+        <button class="menu-btn active" data-value="1">论坛</button>
+        <button class="menu-btn" data-value="2">高端</button>
+        <button class="menu-btn" data-value="3">伴游</button>
+        <button class="menu-btn" data-value="4">包养</button>
     </div>
+    
+    <div class="menu-row menu-row-secondary" id="statusMenu">
+        <button class="menu-btn active" data-value="all">全部</button>
+        <button class="menu-btn" data-value="reviewing">审核中</button>
+        <button class="menu-btn" data-value="approved">审核通过</button>
+        <button class="menu-btn" data-value="rejected">审核拒绝</button>
+    </div>
+
   </div>
 
-  <!-- 主要内容区域 -->
   <div class="publish-container">
     <!-- 筛选标签 -->
-    <div class="filter-tabs">
-      <div class="filter-tab active" data-status="all">全部</div>
-      <div class="filter-tab" data-status="reviewing">审核中</div>
-      <div class="filter-tab" data-status="approved">审核通过</div>
-      <div class="filter-tab" data-status="rejected">审核拒绝</div>
-    </div>
-
-    <!-- 发布列表 - 初始为空，通过JavaScript异步加载 -->
     <div class="publish-list">
     </div>
 
-    <!-- 分页组件 - 初始为空，通过JavaScript异步加载后生成 -->
     <div class="pagination">
     </div>
   </div>
@@ -823,17 +298,18 @@ $zdPackages = [
       // 初始化加载数据
       loadData();
       
-      $('.main-category-btn').click(function() {
+      // 一级菜单（分类）点击事件
+      $('#categoryMenu').on('click', '.menu-btn', function() {
         $(this).addClass('active').siblings().removeClass('active');
-        currentCategory = $(this).data('category');
+        currentCategory = $(this).data('value');
         currentPage = 1;
         loadData();
       });
       
-      // 筛选标签点击事件
-      $('.filter-tab').click(function() {
+      // 二级菜单（状态筛选）点击事件
+      $('#statusMenu').on('click', '.menu-btn', function() {
         $(this).addClass('active').siblings().removeClass('active');
-        var statusVal = $(this).data('status');
+        var statusVal = $(this).data('value');
         switch(statusVal) {
           case 'all':
             currentStatus = -1;
@@ -870,20 +346,10 @@ $zdPackages = [
         }
       });
       
-      // HTML转义，防止拒绝理由中的特殊字符破坏页面或XSS
-      function escapeHtml(str) {
-        return String(str)
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .replace(/"/g, '&quot;')
-          .replace(/'/g, '&#39;');
-      }
-
       // 异步加载数据函数
       function loadData() {
         $.ajax({
-          url: '/opers/info/member_publish.php',
+          url: '/opers/info/member_publish.html',
           type: 'POST',
           dataType: 'json',
           data: {
@@ -953,31 +419,24 @@ $zdPackages = [
           } else {
             pinBadgeHtml = `<button class="publish-pin-badge" onclick="openZdModal(${item.id}, ${currentCategory})">置顶</button>`;
           }
-
-          // 审核拒绝时显示拒绝理由（ly字段），并做HTML转义防止XSS
-          var reasonHtml = '';
-          if (item.flag == 2 && item.ly && String(item.ly).replace(/^\s+|\s+$/g, '') !== '') {
-            reasonHtml = `<div class="publish-reason"><span class="publish-reason-label">拒绝原因：</span>${escapeHtml(item.ly)}</div>`;
-          }
-
+          
           var cardHtml = `
             <div class="publish-item" data-status="${item.flag}">
               <div class="publish-image-container">
                 ${pinBadgeHtml}
-                <a href="${editurl}.html?id=${item.id}" class="publish-edit-badge">修改</a>
-                <a href="${seeurl}${item.id}.html">
+                <a href="/${editurl}.html?id=${item.id}" class="publish-edit-badge">修改</a>
+                <a href="/${seeurl}/${item.id}.html">
                   <img src="${item.pic}" onerror="this.src='upload/default_avatar.png';" alt="${item.title}" class="publish-image">
                 </a>
               </div>
-              <a href="${seeurl}${item.id}.html" class="publish-link">
+              <a href="/${seeurl}.html?id=${item.id}" class="publish-link">
                 <div class="publish-info">
                   <div class="publish-title">${item.title}</div>
-                 <!-- <div class="publish-price">${item.price}</div> -->
+                  <!--<div class="publish-price">${item.price}</div>-->
                   <div class="publish-meta">
                     <span class="publish-date">${item.city_name}</span>
                     <span class="publish-status ${statusClass}">${statusText}</span>
                   </div>
-                  ${reasonHtml}
                 </div>
               </a>
             </div>
