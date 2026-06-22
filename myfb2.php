@@ -15,6 +15,26 @@ $history_url = 'user.html';
 <link rel="stylesheet" href="/css/footer.css">
 <link rel="stylesheet" href="/css/comm.css">
 <link rel="stylesheet" href="/css/member_publish.css?t=123">
+<style>
+    /* 拒绝原因 */
+    .publish-reason {
+        margin-top: 6px;
+        padding: 6px 8px;
+        background: rgba(244, 67, 54, 0.1);
+        border: 1px solid rgba(244, 67, 54, 0.25);
+        border-radius: 4px;
+        font-size: 12px;
+        line-height: 1.4;
+        color: #d33;
+        word-break: break-all;
+        clear: both;
+    }
+    .publish-reason-label {
+        color: #f44336;
+        font-weight: 600;
+        margin-right: 2px;
+    }
+</style>
 </head>
 <body>
 <?php include_once 'webphp/zd_money.php'; ?>
@@ -194,6 +214,16 @@ $history_url = 'user.html';
         }
       });
       
+      // HTML转义，防止拒绝原因中的特殊字符破坏页面或XSS
+      function escapeHtml(str) {
+        return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
       // 异步加载数据函数
       function loadData() {
         $.ajax({
@@ -267,6 +297,12 @@ $history_url = 'user.html';
           } else {
             pinBadgeHtml = `<div class="publish-pin-badge" onclick="openZdModal(${item.id}, ${currentCategory})">置顶</div>`;
           }
+
+          // 审核拒绝时显示拒绝原因（ly字段已由后端转为文字），并做HTML转义防止XSS
+          var reasonHtml = '';
+          if (item.flag == 2 && item.ly && String(item.ly).replace(/^\s+|\s+$/g, '') !== '') {
+            reasonHtml = `<div class="publish-reason"><span class="publish-reason-label">拒绝原因：</span>${escapeHtml(item.ly)}</div>`;
+          }
           
           var cardHtml = `
             <div class="publish-item" data-status="${item.flag}">
@@ -284,6 +320,7 @@ $history_url = 'user.html';
                     <span class="publish-date">${item.city_name}</span>
                     <span class="publish-status ${statusClass}">${statusText}</span>
                   </div>
+                  ${reasonHtml}
                 </div>
               </a>
             </div>
