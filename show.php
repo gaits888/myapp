@@ -273,7 +273,7 @@ $pageTitle = "信息详情";
         
     </style>
 <?php if (isset($infos['isopen']) &&  $infos['isopen'] ==1){ 
-      $contact_infos= db3('infob') ->where($where) ->field('mobile, weixin, qq,yuli') ->find();
+      $contact_infos= db3('infob') ->where(['id' => $info_id]) ->field('mobile, weixin, qq,yuli') ->find();
       include_once 'lib/opens.php'; 
   }
 ?>
