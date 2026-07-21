@@ -345,6 +345,18 @@ class VideoCollector {
         $totalNew = 0;
         $totalSkipped = 0;
         
+        // 保护：数据库为空却存在进度文件，说明进度是脏数据（上次未真正入库）
+        // 此时忽略断点，强制从头采集，避免"以为采完了实际是空表"
+        if ($progress && $dbCount == 0) {
+            outputLine("[修正] 检测到进度文件，但数据库为空 - 判定为无效进度", 'warn');
+            outputLine("[修正] 已清除旧进度，将从第 1 页重新采集", 'warn');
+            outputLine("");
+            $this->clearProgress();
+            $progress = null;
+            $startPage = 1;
+            $endPage = -1;
+        }
+        
         if ($progress) {
             outputLine("[续传] 检测到未完成的采集任务:", 'info');
             outputLine("       上次位置: 第 {$progress['current_page']} 页", 'info');
