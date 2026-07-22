@@ -66,6 +66,7 @@ class VideoCollector {
     private $detailUrl = 'https://heiheiziyuan.com/index.php/vod/detail/id/';
     private $progressFile = 'collection_progress.json';
     private $statsFile = 'collection_stats.json';
+    private $detailProgressFile = 'detail_progress.json';
     private $maxRetries = 3;
     private $reconnectInterval = 100;
     private $lastReconnectPage = 0;
@@ -561,29 +562,8 @@ class VideoCollector {
                 continue;
             }
             
-            // 过滤掉数据库已存在的记录，只对新记录抓取详情页（避免浪费请求）
-            $newList = $this->filterExisting($data['list']);
-
-            // 逐条抓取详情页，补充 imgurl / videourl
-            $detailFail = 0;
-            foreach ($newList as &$video) {
-                $detail = $this->fetchDetail($video['vod_id']);
-                $video['imgurl'] = $detail['imgurl'];
-                $video['videourl'] = $detail['videourl'];
-                if ($detail['imgurl'] === '' && $detail['videourl'] === '') {
-                    $detailFail++;
-                }
-                usleep(100000); // 详情页之间 0.1 秒间隔
-            }
-            unset($video);
-
-            // 批量保存
-            $result = $this->saveVideoBatch($newList);
-            // 已存在的记录计入跳过数
-            $result['skip'] += count($data['list']) - count($newList);
-            if ($detailFail > 0) {
-                outputLine("[提示] 第 {$page} 页有 {$detailFail} 条详情页未取到图片/视频地址", 'warn');
-            }
+            // 批量保存列表基础数据（imgurl/videourl 留空，由详情更新模式补充）
+            $result = $this->saveVideoBatch($data['list']);
             
             $totalNew += $result['new'];
             $totalSkipped += $result['skip'];
@@ -664,6 +644,184 @@ class VideoCollector {
         outputLine("");
         outputDivider('=');
     }
+
+    /**
+     * 详情更新模式
+     * 从 videob 表读取 vod_id → 拼接详情页 URL → 抓取 imgurl / videourl → 更新数据库（直接覆盖）
+     * @param bool $onlyEmpty 仅处理 imgurl 或 videourl 为空的记录
+     * @param bool $resume    是否续传（沿用上次游标）
+     */
+    public function updateDetails($onlyEmpty = false, $resume = false) {
+        $isCli = php_sapi_name() === 'cli';
+
+        outputLine("");
+        outputDivider('=');
+        outputLine("   详情更新程序 - 采集 imgurl / videourl", 'info');
+        outputDivider('=');
+        outputLine("");
+
+        // 非续传时清除旧游标，避免误接上次进度
+        if (!$resume) {
+            $this->clearDetailProgress();
+        }
+
+        // 空字段过滤条件
+        $emptyCond = "(imgurl = '' OR imgurl IS NULL OR videourl = '' OR videourl IS NULL)";
+
+        // 统计待处理总数
+        try {
+            $where = $onlyEmpty ? "WHERE {$emptyCond}" : "";
+            $stmt = $this->db->query("SELECT COUNT(*) FROM videob {$where}");
+            $total = intval($stmt->fetchColumn());
+        } catch (PDOException $e) {
+            outputLine("[错误] 统计失败: " . $e->getMessage(), 'error');
+            return;
+        }
+
+        outputLine("[模式] " . ($onlyEmpty ? "仅更新空字段记录" : "全部覆盖更新"), 'info');
+        outputLine("[统计] 待更新总数: {$total} 条", 'info');
+        outputLine("");
+
+        if ($total == 0) {
+            outputLine("[完成] 没有需要更新的记录!", 'success');
+            $this->clearDetailProgress();
+            return;
+        }
+
+        // 断点续传游标（基于 vod_id 升序）
+        $lastId = 0;
+        $totalDone = 0;
+        $totalFail = 0;
+        if ($resume) {
+            $cursor = $this->loadDetailProgress();
+            if ($cursor) {
+                $lastId = intval($cursor['last_id']);
+                $totalDone = intval($cursor['total_done']);
+                $totalFail = intval($cursor['total_fail']);
+                outputLine("[续传] 从 vod_id > {$lastId} 继续，已处理 {$totalDone} 条", 'success');
+                outputLine("");
+            }
+        }
+
+        $batchSize = 200;
+        $startTime = microtime(true);
+        $this->startTimestamp = time();
+        $processed = 0;
+
+        $update = $this->db->prepare(
+            "UPDATE videob SET imgurl = ?, videourl = ?, updated_at = ? WHERE vod_id = ?"
+        );
+
+        while (true) {
+            // 每隔一定量重连一次数据库，释放内存
+            // 取下一批 vod_id（游标分页，避免 OFFSET 越来越慢）
+            $conds = ["vod_id > " . intval($lastId)];
+            if ($onlyEmpty) {
+                $conds[] = $emptyCond;
+            }
+            $sql = "SELECT vod_id FROM videob WHERE " . implode(' AND ', $conds)
+                 . " ORDER BY vod_id ASC LIMIT {$batchSize}";
+
+            try {
+                $rows = $this->db->query($sql)->fetchAll(PDO::FETCH_COLUMN);
+            } catch (PDOException $e) {
+                outputLine("[错误] 查询失败: " . $e->getMessage(), 'error');
+                break;
+            }
+
+            if (empty($rows)) {
+                break; // 全部处理完毕
+            }
+
+            foreach ($rows as $vodId) {
+                $vodId = intval($vodId);
+                $detail = $this->fetchDetail($vodId);
+
+                try {
+                    $update->execute([
+                        $detail['imgurl'],
+                        $detail['videourl'],
+                        date('Y-m-d H:i:s'),
+                        $vodId
+                    ]);
+                } catch (PDOException $e) {
+                    // 单条更新失败忽略，继续处理
+                }
+
+                $hasData = ($detail['imgurl'] !== '' || $detail['videourl'] !== '');
+                if (!$hasData) {
+                    $totalFail++;
+                }
+                $totalDone++;
+                $processed++;
+                $lastId = $vodId;
+
+                $percent = round($totalDone / max($total, 1) * 100, 1);
+                outputLine(sprintf(
+                    "[%s] vod_id:%d %5.1f%% | 完成:%d/%d | 未取到:%d | img:%s vid:%s",
+                    date('H:i:s'), $vodId, $percent, $totalDone, $total, $totalFail,
+                    $detail['imgurl'] !== '' ? 'Y' : 'N',
+                    $detail['videourl'] !== '' ? 'Y' : 'N'
+                ), $hasData ? 'success' : 'warn');
+
+                usleep(100000); // 详情页之间 0.1 秒间隔
+
+                // Web 模式：定时保存进度并自动刷新，防止超时
+                if (!$isCli) {
+                    $elapsed = time() - $this->startTimestamp;
+                    if ($elapsed >= $this->webRefreshInterval) {
+                        $this->saveDetailProgress($lastId, $totalDone, $totalFail);
+                        outputLine("");
+                        outputDivider('-');
+                        outputLine("[刷新] 已运行 {$elapsed} 秒，本轮处理 {$processed} 条", 'warn');
+                        outputLine("[刷新] 累计完成 {$totalDone} 条，1秒后自动继续...", 'warn');
+                        outputDivider('-');
+                        $only = $onlyEmpty ? '&onlyempty=1' : '';
+                        echo "</pre><script>setTimeout(function(){ window.location.href='?mode=detail&resume=1{$only}'; }, 1000);</script></body></html>";
+                        exit;
+                    }
+                }
+            }
+
+            $this->saveDetailProgress($lastId, $totalDone, $totalFail);
+        }
+
+        $this->clearDetailProgress();
+        $totalTime = round(microtime(true) - $startTime, 2);
+        outputLine("");
+        outputDivider('=');
+        outputLine("   详情更新完成!", 'success');
+        outputDivider('=');
+        outputLine("[统计] 处理: {$totalDone} 条", 'success');
+        outputLine("[统计] 未取到地址: {$totalFail} 条", $totalFail > 0 ? 'warn' : 'info');
+        outputLine("[统计] 耗时: {$totalTime} 秒", 'info');
+        outputDivider('=');
+    }
+
+    private function saveDetailProgress($lastId, $totalDone, $totalFail) {
+        file_put_contents($this->detailProgressFile, json_encode([
+            'last_id' => $lastId,
+            'total_done' => $totalDone,
+            'total_fail' => $totalFail,
+            'last_update' => date('Y-m-d H:i:s')
+        ], JSON_PRETTY_PRINT));
+    }
+
+    private function loadDetailProgress() {
+        if (file_exists($this->detailProgressFile)) {
+            $p = json_decode(file_get_contents($this->detailProgressFile), true);
+            if ($p && isset($p['last_id'])) {
+                return $p;
+            }
+        }
+        return null;
+    }
+
+    private function clearDetailProgress() {
+        if (file_exists($this->detailProgressFile)) {
+            unlink($this->detailProgressFile);
+        }
+    }
 }
 
 // ========== 主程序 ==========
@@ -673,24 +831,43 @@ outputLine("程序启动...", 'info');
 outputLine("");
 
 if ($isCli) {
-    $startPage = isset($argv[1]) ? intval($argv[1]) : 1;
-    $endPage = isset($argv[2]) ? intval($argv[2]) : -1;
-    $resume = isset($argv[3]) && $argv[3] === 'resume';
+    // 详情模式:  php cj.php detail [onlyempty] [resume]
+    // 列表模式:  php cj.php [起始页] [结束页] [resume]
+    $mode = (isset($argv[1]) && $argv[1] === 'detail') ? 'detail' : 'list';
+    if ($mode === 'detail') {
+        $onlyEmpty = in_array('onlyempty', $argv, true);
+        $resume = in_array('resume', $argv, true);
+    } else {
+        $startPage = isset($argv[1]) ? intval($argv[1]) : 1;
+        $endPage = isset($argv[2]) ? intval($argv[2]) : -1;
+        $resume = isset($argv[3]) && $argv[3] === 'resume';
+    }
 } else {
-    $startPage = isset($_GET['start']) ? intval($_GET['start']) : 1;
-    $endPage = isset($_GET['end']) ? intval($_GET['end']) : -1;
-    $resume = isset($_GET['resume']);
+    // 详情模式:  ?mode=detail[&onlyempty=1][&resume=1]
+    // 列表模式:  ?start=1&end=-1[&resume=1]
+    $mode = (isset($_GET['mode']) && $_GET['mode'] === 'detail') ? 'detail' : 'list';
+    if ($mode === 'detail') {
+        $onlyEmpty = isset($_GET['onlyempty']);
+        $resume = isset($_GET['resume']);
+    } else {
+        $startPage = isset($_GET['start']) ? intval($_GET['start']) : 1;
+        $endPage = isset($_GET['end']) ? intval($_GET['end']) : -1;
+        $resume = isset($_GET['resume']);
+    }
 }
-
-if ($startPage < 1) $startPage = 1;
-if ($endPage < $startPage && $endPage != -1) $endPage = $startPage;
 
 outputLine("[初始化] 正在连接数据库...", 'info');
 $collector = new VideoCollector($dbConfig);
 outputLine("[初始化] 数据库连接成功", 'success');
 outputLine("");
 
-$collector->collect($startPage, $endPage, $resume);
+if ($mode === 'detail') {
+    $collector->updateDetails($onlyEmpty, $resume);
+} else {
+    if ($startPage < 1) $startPage = 1;
+    if ($endPage < $startPage && $endPage != -1) $endPage = $startPage;
+    $collector->collect($startPage, $endPage, $resume);
+}
 
 if (!$isCli) {
     echo '</pre></body></html>';
