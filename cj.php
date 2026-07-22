@@ -247,19 +247,26 @@ class VideoCollector {
      * - videourl: <pre class="pbox-code" id="code_0">HD$*</pre> ($ 后面的地址)
      */
     public function fetchDetail($vodId) {
-        $result = ['imgurl' => '', 'videourl' => ''];
+        // reason: '' 成功; 其它值说明失败原因，便于诊断"未提取到"
+        $result = ['imgurl' => '', 'videourl' => '', 'reason' => ''];
         $url = $this->detailUrl . intval($vodId) . '.html';
 
         $ch = curl_init();
         curl_setopt_array($ch, [
             CURLOPT_URL => $url,
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 15,
-            CURLOPT_CONNECTTIMEOUT => 5,
+            CURLOPT_TIMEOUT => 20,
+            CURLOPT_CONNECTTIMEOUT => 8,
             CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_SSL_VERIFYHOST => false,
-            CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            CURLOPT_ENCODING => 'gzip,deflate'
+            CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            // 空字符串: 让 curl 自动声明并解码它支持的所有编码(gzip/deflate/br)，避免拿到压缩乱码
+            CURLOPT_ENCODING => '',
+            CURLOPT_HTTPHEADER => [
+                'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language: zh-CN,zh;q=0.9',
+                'Referer: https://heiheiziyuan.com/'
+            ]
         ]);
         if (!ini_get('open_basedir')) {
             curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
@@ -271,7 +278,16 @@ class VideoCollector {
         $error = curl_error($ch);
         curl_close($ch);
 
-        if ($error || $httpCode != 200 || !$html) {
+        if ($error) {
+            $result['reason'] = 'curl错误:' . $error;
+            return $result;
+        }
+        if ($httpCode != 200) {
+            $result['reason'] = 'HTTP:' . $httpCode;
+            return $result;
+        }
+        if (!$html) {
+            $result['reason'] = '空响应';
             return $result;
         }
 
@@ -286,6 +302,12 @@ class VideoCollector {
             // 内容格式通常为 "HD$地址"，取第一个 $ 之后的部分
             $pos = strpos($raw, '$');
             $result['videourl'] = $pos !== false ? trim(substr($raw, $pos + 1)) : $raw;
+        }
+
+        // 抓到页面却没匹配到，说明被拦截(如 Cloudflare 验证页)或页面结构变化
+        if ($result['imgurl'] === '' && $result['videourl'] === '') {
+            $isCf = stripos($html, 'cloudflare') !== false || stripos($html, 'Just a moment') !== false;
+            $result['reason'] = $isCf ? '被Cloudflare拦截' : ('页面无匹配(长度' . strlen($html) . ')');
         }
 
         return $result;
@@ -757,11 +779,13 @@ class VideoCollector {
                 $lastId = $vodId;
 
                 $percent = round($totalDone / max($total, 1) * 100, 1);
+                $reasonText = $hasData ? '' : ' | 原因:' . ($detail['reason'] !== '' ? $detail['reason'] : '未知');
                 outputLine(sprintf(
-                    "[%s] vod_id:%d %5.1f%% | 完成:%d/%d | 未取到:%d | img:%s vid:%s",
+                    "[%s] vod_id:%d %5.1f%% | 完成:%d/%d | 未取到:%d | img:%s vid:%s%s",
                     date('H:i:s'), $vodId, $percent, $totalDone, $total, $totalFail,
                     $detail['imgurl'] !== '' ? 'Y' : 'N',
-                    $detail['videourl'] !== '' ? 'Y' : 'N'
+                    $detail['videourl'] !== '' ? 'Y' : 'N',
+                    $reasonText
                 ), $hasData ? 'success' : 'warn');
 
                 usleep(100000); // 详情页之间 0.1 秒间隔
