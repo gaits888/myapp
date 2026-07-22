@@ -62,7 +62,8 @@ function outputDivider($char = '-', $length = 70) {
 class VideoCollector {
     private $db;
     private $dbConfig;
-    private $apiUrl = 'https://heiheiziyuan.com/index.php/vod/detail/id/';
+    private $apiUrl = 'https://heiheiziyuan.com/api.php/provide/vod/?ac=list';
+    private $detailUrl = 'https://heiheiziyuan.com/index.php/vod/detail/id/';
     private $progressFile = 'collection_progress.json';
     private $statsFile = 'collection_stats.json';
     private $maxRetries = 3;
@@ -125,6 +126,40 @@ class VideoCollector {
         }
     }
     
+    /**
+     * 过滤掉数据库中已存在的记录，返回需要新采集的列表
+     */
+    public function filterExisting($videoList) {
+        if (empty($videoList)) {
+            return [];
+        }
+        try {
+            $ids = [];
+            foreach ($videoList as $v) {
+                $ids[] = intval($v['vod_id']);
+            }
+            $in = implode(',', $ids);
+            $stmt = $this->db->query("SELECT vod_id FROM videob WHERE vod_id IN ({$in})");
+            $existing = [];
+            foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $id) {
+                $existing[intval($id)] = true;
+            }
+            if (empty($existing)) {
+                return $videoList;
+            }
+            $newList = [];
+            foreach ($videoList as $v) {
+                if (!isset($existing[intval($v['vod_id'])])) {
+                    $newList[] = $v;
+                }
+            }
+            return $newList;
+        } catch (PDOException $e) {
+            // 查询失败时退回全量，交给 INSERT IGNORE 去重
+            return $videoList;
+        }
+    }
+
     /**
      * 获取数据库中已有的记录数
      */
@@ -204,6 +239,56 @@ class VideoCollector {
         }
         return $data;
     }
+
+    /**
+     * 抓取详情页，提取图片地址和视频地址
+     * - imgurl:  <div class="cover-img"><img src="*">
+     * - videourl: <pre class="pbox-code" id="code_0">HD$*</pre> ($ 后面的地址)
+     */
+    public function fetchDetail($vodId) {
+        $result = ['imgurl' => '', 'videourl' => ''];
+        $url = $this->detailUrl . intval($vodId) . '.html';
+
+        $ch = curl_init();
+        curl_setopt_array($ch, [
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 15,
+            CURLOPT_CONNECTTIMEOUT => 5,
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_SSL_VERIFYHOST => false,
+            CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            CURLOPT_ENCODING => 'gzip,deflate'
+        ]);
+        if (!ini_get('open_basedir')) {
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+            curl_setopt($ch, CURLOPT_MAXREDIRS, 3);
+        }
+
+        $html = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        if ($error || $httpCode != 200 || !$html) {
+            return $result;
+        }
+
+        // 提取图片地址
+        if (preg_match('/<div class="cover-img">\s*<img[^>]*\bsrc="([^"]*)"/i', $html, $m)) {
+            $result['imgurl'] = trim($m[1]);
+        }
+
+        // 提取视频地址：<pre class="pbox-code" id="code_0">HD$http...</pre>
+        if (preg_match('/<pre class="pbox-code"[^>]*id="code_0"[^>]*>([^<]*)<\/pre>/i', $html, $m)) {
+            $raw = trim($m[1]);
+            // 内容格式通常为 "HD$地址"，取第一个 $ 之后的部分
+            $pos = strpos($raw, '$');
+            $result['videourl'] = $pos !== false ? trim(substr($raw, $pos + 1)) : $raw;
+        }
+
+        return $result;
+    }
     
     public function saveVideoBatch($videoList) {
         if (empty($videoList)) {
@@ -213,7 +298,7 @@ class VideoCollector {
         try {
             $sql = "INSERT IGNORE INTO videob (
                 vod_id, vod_name, type_id, type_name, vod_en,
-                vod_time, vod_remarks, vod_play_from,
+                vod_time, vod_remarks, vod_play_from, imgurl, videourl,
                 created_at, updated_at
             ) VALUES ";
             
@@ -222,7 +307,7 @@ class VideoCollector {
             $now = date('Y-m-d H:i:s');
             
             foreach ($videoList as $video) {
-                $placeholders[] = "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                $placeholders[] = "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 $values[] = $video['vod_id'];
                 $values[] = $video['vod_name'];
                 $values[] = $video['type_id'];
@@ -231,6 +316,8 @@ class VideoCollector {
                 $values[] = isset($video['vod_time']) ? $video['vod_time'] : null;
                 $values[] = isset($video['vod_remarks']) ? $video['vod_remarks'] : '';
                 $values[] = isset($video['vod_play_from']) ? $video['vod_play_from'] : '';
+                $values[] = isset($video['imgurl']) ? $video['imgurl'] : '';
+                $values[] = isset($video['videourl']) ? $video['videourl'] : '';
                 $values[] = $now;
                 $values[] = $now;
             }
@@ -474,8 +561,29 @@ class VideoCollector {
                 continue;
             }
             
+            // 过滤掉数据库已存在的记录，只对新记录抓取详情页（避免浪费请求）
+            $newList = $this->filterExisting($data['list']);
+
+            // 逐条抓取详情页，补充 imgurl / videourl
+            $detailFail = 0;
+            foreach ($newList as &$video) {
+                $detail = $this->fetchDetail($video['vod_id']);
+                $video['imgurl'] = $detail['imgurl'];
+                $video['videourl'] = $detail['videourl'];
+                if ($detail['imgurl'] === '' && $detail['videourl'] === '') {
+                    $detailFail++;
+                }
+                usleep(100000); // 详情页之间 0.1 秒间隔
+            }
+            unset($video);
+
             // 批量保存
-            $result = $this->saveVideoBatch($data['list']);
+            $result = $this->saveVideoBatch($newList);
+            // 已存在的记录计入跳过数
+            $result['skip'] += count($data['list']) - count($newList);
+            if ($detailFail > 0) {
+                outputLine("[提示] 第 {$page} 页有 {$detailFail} 条详情页未取到图片/视频地址", 'warn');
+            }
             
             $totalNew += $result['new'];
             $totalSkipped += $result['skip'];
