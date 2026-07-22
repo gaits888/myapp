@@ -62,7 +62,7 @@ function outputDivider($char = '-', $length = 70) {
 class VideoCollector {
     private $db;
     private $dbConfig;
-    private $apiUrl = 'https://api.heiapi.cc/api.php/provide/vod/?ac=list';
+    private $apiUrl = 'https://heiheiziyuan.com/index.php/vod/detail/id/';
     private $progressFile = 'collection_progress.json';
     private $statsFile = 'collection_stats.json';
     private $maxRetries = 3;
