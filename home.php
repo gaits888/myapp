@@ -103,7 +103,7 @@ if ($page == 1) {
 
     // 3. 存在则插入到第一条
     if (!empty($pinnedItem)) {
-        array_unshift($infoList, $pinnedItem);
+        //array_unshift($infoList, $pinnedItem);
     }
 }
 
@@ -214,7 +214,7 @@ $description=$webname."是全国领先的楼凤信息平台，千万真实用户
     height: 24px;
     fill: url(#fireGradient);
     filter: drop-shadow(0 2px 4px rgba(156, 39, 176, 0.35));
-    animation: pulse 2s ease-in-out infinite;
+    animation: pulse 8s ease-in-out infinite;
 }
 @keyframes pulse {
     0%, 100% { transform: scale(1); }
@@ -228,7 +228,7 @@ $description=$webname."是全国领先的楼凤信息平台，千万真实用户
     border-bottom: none;
     white-space: nowrap;
     letter-spacing: 0.5px;
-    background: linear-gradient(135deg, #c2185b 0%, #e91e63 45%, #9c27b0 100%);
+    background: linear-gradient(135deg, rgb(252 10 10 / 40%), #9369ff);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
