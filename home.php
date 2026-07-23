@@ -210,27 +210,30 @@ $description=$webname."是全国领先的楼凤信息平台，千万真实用户
   background:#ff4d8d;
 }
 .sort-nav-brand svg {
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
     fill: url(#fireGradient);
-    filter: drop-shadow(0 2px 4px rgba(255, 107, 157, 0.3));
+    filter: drop-shadow(0 2px 4px rgba(156, 39, 176, 0.35));
     animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.12); }
 }
 
 .hot-title {
     padding: 0;
-    background: transparent;
     font-size: 17px;
     font-weight: 700;
-    color: #2c3e50;
     border-bottom: none;
     white-space: nowrap;
     letter-spacing: 0.5px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    background: linear-gradient(135deg, #ff6b9d 0%, #ff8fb3 50%, #ffb347 100%);
+    background: linear-gradient(135deg, #c2185b 0%, #e91e63 45%, #9c27b0 100%);
     -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+}
 </style>
 </head>
 <body>
@@ -315,9 +318,9 @@ $description=$webname."是全国领先的楼凤信息平台，千万真实用户
 <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <defs>
                 <linearGradient id="fireGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" style="stop-color:#ff6b9d;stop-opacity:1"></stop>
-                    <stop offset="50%" style="stop-color:#ff8fb3;stop-opacity:1"></stop>
-                    <stop offset="100%" style="stop-color:#ffb347;stop-opacity:1"></stop>
+                    <stop offset="0%" style="stop-color:#9c27b0;stop-opacity:1"></stop>
+                    <stop offset="50%" style="stop-color:#e91e63;stop-opacity:1"></stop>
+                    <stop offset="100%" style="stop-color:#c2185b;stop-opacity:1"></stop>
                 </linearGradient>
             </defs>
             <path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67zM11.71 19c-1.78 0-3.22-1.4-3.22-3.14 0-1.62 1.05-2.76 2.81-3.12 1.77-.36 3.6-1.21 4.62-2.58.39 1.29.59 2.65.59 4.04 0 2.65-2.15 4.8-4.8 4.8z"></path>
@@ -435,6 +438,14 @@ echo "var currentPageStrs = '$currentPageStrs';var doamin_url = '$doamin_url';";
   var currentPages = <?php echo $page; ?>;
   var totalPages = <?php echo $totalPages; ?>;
 
+  // 读取当前排序条件，翻页时同步导航筛选（伪静态用查询串携带）
+  function getSortParam() {
+    var sort = new URLSearchParams(window.location.search).get('sort') || 'new';
+    if (['new', 'rz', 'tj'].indexOf(sort) === -1) sort = 'new';
+    // 默认(最新信息)不带参数，保持 URL 干净
+    return sort === 'new' ? '' : ('?sort=' + sort);
+  }
+
   function prevPage() {
     if (currentPages > 1) {
       goToPage(currentPages - 1);
@@ -449,10 +460,11 @@ echo "var currentPageStrs = '$currentPageStrs';var doamin_url = '$doamin_url';";
 
   function goToPage(page) {
     page = parseInt(page);
+    var sortQuery = getSortParam();
     if (currentPageStrs === 'home') {
-      window.location.href = '/' + page + '.html';
+      window.location.href = '/' + page + '.html' + sortQuery;
     } else {
-      window.location.href = doamin_url + page + '.html';
+      window.location.href = doamin_url + page + '.html' + sortQuery;
     }
   }
 </script>
