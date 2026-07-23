@@ -161,8 +161,8 @@ $description=$webname."是全国领先的楼凤信息平台，千万真实用户
   align-items:center;
   justify-content:space-between;
   background:linear-gradient(135deg,#fff5f8 0%,#ffffff 100%);
-  border-radius:12px;
-  padding:12px 16px;
+  border-radius:10px;
+  padding:12px 10px 12px 10px;
   margin:10px 12px;
   box-shadow:0 2px 8px rgba(255,105,150,0.08);
 }
@@ -197,7 +197,7 @@ $description=$webname."是全国领先的楼凤信息平台，千万真实用户
 }
 .sort-nav-item.active{
   color:#ff4d8d;
-  font-weight:700;
+  font-weight:600;
 }
 .sort-nav-item.active::after{
   content:"";
@@ -205,10 +205,32 @@ $description=$webname."是全国领先的楼凤信息平台，千万真实用户
   left:0;
   right:0;
   bottom:-2px;
-  height:3px;
+  height:1px;
   border-radius:2px;
   background:#ff4d8d;
 }
+.sort-nav-brand svg {
+    width: 20px;
+    height: 20px;
+    fill: url(#fireGradient);
+    filter: drop-shadow(0 2px 4px rgba(255, 107, 157, 0.3));
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.hot-title {
+    padding: 0;
+    background: transparent;
+    font-size: 17px;
+    font-weight: 700;
+    color: #2c3e50;
+    border-bottom: none;
+    white-space: nowrap;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg, #ff6b9d 0%, #ff8fb3 50%, #ffb347 100%);
+    -webkit-background-clip: text;
 </style>
 </head>
 <body>
@@ -290,10 +312,17 @@ $description=$webname."是全国领先的楼凤信息平台，千万真实用户
     <!-- 排序导航条 -->
     <div class="sort-nav">
       <div class="sort-nav-brand">
-        <svg class="sort-nav-flame" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="M12 2c0 3-4 4.5-4 8a4 4 0 0 0 1.2 2.9C8.5 12 9 10.8 9 10c1.5 1 2 3 2 4.2 0 .9-.4 1.7-1 2.3 2.2-.3 4-2.2 4-4.7 0-3.5-2-5.6-2-7.3.9.3 1.7.9 2.3 1.8C16 4.5 14 3 12 2z"></path>
+<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <linearGradient id="fireGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#ff6b9d;stop-opacity:1"></stop>
+                    <stop offset="50%" style="stop-color:#ff8fb3;stop-opacity:1"></stop>
+                    <stop offset="100%" style="stop-color:#ffb347;stop-opacity:1"></stop>
+                </linearGradient>
+            </defs>
+            <path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67zM11.71 19c-1.78 0-3.22-1.4-3.22-3.14 0-1.62 1.05-2.76 2.81-3.12 1.77-.36 3.6-1.21 4.62-2.58.39 1.29.59 2.65.59 4.04 0 2.65-2.15 4.8-4.8 4.8z"></path>
         </svg>
-        <span class="sort-nav-title">论坛中心</span>
+        <span class="sort-nav-title hot-title">论坛中心</span>
       </div>
       <div class="sort-nav-links">
         <a href="/" class="sort-nav-item<?php echo $sort=='new'?' active':''; ?>">最新信息</a>
@@ -361,7 +390,81 @@ $description=$webname."是全国领先的楼凤信息平台，千万真实用户
       <?php endforeach ?>
     </div>
 
-    <?php include_once 'comm/pagination.php'; ?>
+
+
+
+
+
+
+
+<?php
+// 确保当前页不超过总页数
+$page = min($page, $totalPages);
+?>
+<link rel="stylesheet" href="/css/pagination.css?t=1.123982739">
+<!-- 分页 -->
+<div class="pagination">
+  <div class="pagination-btn" onclick="prevPage()" id="prevBtn" <?php echo $page <= 1 ? 'disabled' : ''; ?>>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polyline points="15 18 9 12 15 6"></polyline>
+    </svg>
+    <span>上一页</span>
+  </div>
+  
+  <select id="pageSelector" onchange="goToPage(this.value)" class="pagination-select">
+    <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+      <option value="<?php echo $i; ?>" <?php echo $i == $page ? 'selected' : ''; ?>>
+        <?php echo $i; ?> / <?php echo $totalPages; ?>
+      </option>
+    <?php endfor; ?>
+  </select>
+
+  <div class="pagination-btn" onclick="nextPage()" id="nextBtn" <?php echo $page >= $totalPages ? 'disabled' : ''; ?>>
+    <span>下一页</span>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </div>
+</div>
+
+
+<script>
+<?php
+echo "var currentPageStrs = '$currentPageStrs';var doamin_url = '$doamin_url';";
+?>
+  var currentPages = <?php echo $page; ?>;
+  var totalPages = <?php echo $totalPages; ?>;
+
+  function prevPage() {
+    if (currentPages > 1) {
+      goToPage(currentPages - 1);
+    }
+  }
+
+  function nextPage() {
+    if (currentPages < totalPages) {
+      goToPage(currentPages + 1);
+    }
+  }
+
+  function goToPage(page) {
+    page = parseInt(page);
+    if (currentPageStrs === 'home') {
+      window.location.href = '/' + page + '.html';
+    } else {
+      window.location.href = doamin_url + page + '.html';
+    }
+  }
+</script>
+
+    
+    
+    
+    
+    
+    
+    
+    
 </div>
 
 
