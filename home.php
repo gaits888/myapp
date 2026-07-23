@@ -21,6 +21,12 @@ if(!in_array($types,[0,1,2])){
     $types = 0;
 }
 
+// 导航排序：new=最新信息(默认) rz=认证信息(isrz=1) tj=推荐信息(fxy=1)
+$sort = isset($_GET['sort']) ? trim($_GET['sort']) : 'new';
+if (!in_array($sort, ['new', 'rz', 'tj'])) {
+    $sort = 'new';
+}
+
 $where = [];
 $where[] = ['infob.flag','=',1];
 $where[] = ['infob.pics','!=',''];
@@ -28,6 +34,13 @@ $where[] = ['infob.ljxx','=',0];
 $where[] = ['infob.del','=',0];
 $where[] = ['infob.ispt','=',0];
 $where[] = ['infob.isrz','<',2];
+
+// 导航筛选条件
+if ($sort == 'rz') {
+    $where[] = ['infob.isrz','=',1];
+} elseif ($sort == 'tj') {
+    $where[] = ['infob.fxy','=',1];
+}
 
 // 处理城市查询条件
 if ($city_id > 1) {
@@ -63,8 +76,7 @@ $infoList = db3('infob')
     ->where($where)
     ->field($listField)
     ->order('iszd', 'DESC')
-    ->order('isrz', 'DESC')
-    ->order('fbtime', 'DESC')
+    ->order('infob.id', 'DESC')
     ->limit($total)  // 限制在total范围内（全国时最多5000条）
     ->page($page, $pageSize)  // 分页
     ->select();
@@ -144,6 +156,59 @@ $description=$webname."是全国领先的楼凤信息平台，千万真实用户
 <script src="/js/jsbridge-mini.js"></script>
 <script src="/layer/layer.js"></script>
 <style>
+.sort-nav{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  background:linear-gradient(135deg,#fff5f8 0%,#ffffff 100%);
+  border-radius:12px;
+  padding:12px 16px;
+  margin:10px 12px;
+  box-shadow:0 2px 8px rgba(255,105,150,0.08);
+}
+.sort-nav-brand{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex-shrink:0;
+}
+.sort-nav-flame{
+  width:20px;
+  height:20px;
+  color:#ff6b9d;
+}
+.sort-nav-title{
+  font-size:15px;
+  font-weight:700;
+  color:#333;
+}
+.sort-nav-links{
+  display:flex;
+  align-items:center;
+  gap:16px;
+}
+.sort-nav-item{
+  position:relative;
+  font-size:15px;
+  color:#666;
+  text-decoration:none;
+  padding:4px 0;
+  transition:color .2s;
+}
+.sort-nav-item.active{
+  color:#ff4d8d;
+  font-weight:700;
+}
+.sort-nav-item.active::after{
+  content:"";
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:-2px;
+  height:3px;
+  border-radius:2px;
+  background:#ff4d8d;
+}
 </style>
 </head>
 <body>
@@ -219,6 +284,21 @@ $description=$webname."是全国领先的楼凤信息平台，千万真实用户
           </div>
           <div class="menu-label">包养</div>
         </a>
+      </div>
+    </div>
+
+    <!-- 排序导航条 -->
+    <div class="sort-nav">
+      <div class="sort-nav-brand">
+        <svg class="sort-nav-flame" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 2c0 3-4 4.5-4 8a4 4 0 0 0 1.2 2.9C8.5 12 9 10.8 9 10c1.5 1 2 3 2 4.2 0 .9-.4 1.7-1 2.3 2.2-.3 4-2.2 4-4.7 0-3.5-2-5.6-2-7.3.9.3 1.7.9 2.3 1.8C16 4.5 14 3 12 2z"></path>
+        </svg>
+        <span class="sort-nav-title">论坛中心</span>
+      </div>
+      <div class="sort-nav-links">
+        <a href="?sort=new" class="sort-nav-item<?php echo $sort=='new'?' active':''; ?>">最新信息</a>
+        <a href="?sort=rz" class="sort-nav-item<?php echo $sort=='rz'?' active':''; ?>">认证信息</a>
+        <a href="?sort=tj" class="sort-nav-item<?php echo $sort=='tj'?' active':''; ?>">推荐信息</a>
       </div>
     </div>
 
@@ -360,6 +440,27 @@ setTimeout(() =>{ $('#app').hide(); }, 30*1000);
 $('#app').click(function(){
 	$('#app').hide();
 });
+
+// ===== 分页同步导航筛选条件 =====
+(function(){
+  // 取当前排序值
+  var params = new URLSearchParams(window.location.search);
+  var sort = params.get('sort') || 'new';
+  if (['new','rz','tj'].indexOf(sort) === -1) sort = 'new';
+  // 给所有含 page= 的分页链接补上 sort 参数
+  var links = document.querySelectorAll('a[href*="page="]');
+  links.forEach(function(a){
+    var href = a.getAttribute('href');
+    if (!href) return;
+    // 拆分出 ? 之后的查询串（兼容相对/绝对路径）
+    var qIndex = href.indexOf('?');
+    if (qIndex === -1) return; // 无查询串的分页(如伪静态)无法同步，跳过
+    var base = href.substring(0, qIndex);
+    var qs = new URLSearchParams(href.substring(qIndex + 1));
+    qs.set('sort', sort);
+    a.setAttribute('href', base + '?' + qs.toString());
+  });
+})();
 
 </script>
 
