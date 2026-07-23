@@ -296,9 +296,9 @@ $description=$webname."是全国领先的楼凤信息平台，千万真实用户
         <span class="sort-nav-title">论坛中心</span>
       </div>
       <div class="sort-nav-links">
-        <a href="?sort=new" class="sort-nav-item<?php echo $sort=='new'?' active':''; ?>">最新信息</a>
-        <a href="?sort=rz" class="sort-nav-item<?php echo $sort=='rz'?' active':''; ?>">认证信息</a>
-        <a href="?sort=tj" class="sort-nav-item<?php echo $sort=='tj'?' active':''; ?>">推荐信息</a>
+        <a href="/" class="sort-nav-item<?php echo $sort=='new'?' active':''; ?>">最新信息</a>
+        <a href="/?sort=rz" class="sort-nav-item<?php echo $sort=='rz'?' active':''; ?>">认证信息</a>
+        <a href="/?sort=tj" class="sort-nav-item<?php echo $sort=='tj'?' active':''; ?>">推荐信息</a>
       </div>
     </div>
 
@@ -440,27 +440,6 @@ setTimeout(() =>{ $('#app').hide(); }, 30*1000);
 $('#app').click(function(){
 	$('#app').hide();
 });
-
-// ===== 分页同步导航筛选条件 =====
-(function(){
-  // 取当前排序值
-  var params = new URLSearchParams(window.location.search);
-  var sort = params.get('sort') || 'new';
-  if (['new','rz','tj'].indexOf(sort) === -1) sort = 'new';
-  // 给所有含 page= 的分页链接补上 sort 参数
-  var links = document.querySelectorAll('a[href*="page="]');
-  links.forEach(function(a){
-    var href = a.getAttribute('href');
-    if (!href) return;
-    // 拆分出 ? 之后的查询串（兼容相对/绝对路径）
-    var qIndex = href.indexOf('?');
-    if (qIndex === -1) return; // 无查询串的分页(如伪静态)无法同步，跳过
-    var base = href.substring(0, qIndex);
-    var qs = new URLSearchParams(href.substring(qIndex + 1));
-    qs.set('sort', sort);
-    a.setAttribute('href', base + '?' + qs.toString());
-  });
-})();
 
 </script>
 
