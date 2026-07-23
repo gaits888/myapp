@@ -318,10 +318,9 @@ $description=$webname."是全国领先的楼凤信息平台，千万真实用户
       <div class="sort-nav-brand">
 <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <defs>
-                <linearGradient id="fireGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" style="stop-color:#9c27b0;stop-opacity:1"></stop>
-                    <stop offset="50%" style="stop-color:#e91e63;stop-opacity:1"></stop>
-                    <stop offset="100%" style="stop-color:#c2185b;stop-opacity:1"></stop>
+                <linearGradient id="fireGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#fc0a0a;stop-opacity:0.4"></stop>
+                    <stop offset="100%" style="stop-color:#9369ff;stop-opacity:1"></stop>
                 </linearGradient>
             </defs>
             <path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67zM11.71 19c-1.78 0-3.22-1.4-3.22-3.14 0-1.62 1.05-2.76 2.81-3.12 1.77-.36 3.6-1.21 4.62-2.58.39 1.29.59 2.65.59 4.04 0 2.65-2.15 4.8-4.8 4.8z"></path>
