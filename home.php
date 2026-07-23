@@ -213,12 +213,13 @@ $description=$webname."是全国领先的楼凤信息平台，千万真实用户
     width: 24px;
     height: 24px;
     fill: url(#fireGradient);
-    filter: drop-shadow(0 2px 4px rgba(156, 39, 176, 0.35));
-    animation: pulse 8s ease-in-out infinite;
+    filter: drop-shadow(0 1px 3px rgba(156, 39, 176, 0.3));
+    transform-origin: center bottom;
+    animation: flameBreath 3s ease-in-out infinite;
 }
-@keyframes pulse {
+@keyframes flameBreath {
     0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.12); }
+    50% { transform: scale(1.06); }
 }
 
 .hot-title {
