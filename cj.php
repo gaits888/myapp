@@ -442,7 +442,7 @@ class VideoCollector {
         $maxVodId = $this->getMaxVodId();
         
         outputLine("[数据库] 已有记录: {$dbCount} 条", 'info');
-        outputLine("[数据库] 最大vod_id: {$maxVodId}", 'info');
+        outputLine("[数据��] 最大vod_id: {$maxVodId}", 'info');
         outputLine("");
         
         // 检查今日是否已采集
@@ -806,8 +806,9 @@ class VideoCollector {
                         outputLine("[刷新] 已运行 {$elapsed} 秒，本轮处理 {$processed} 条", 'warn');
                         outputLine("[刷新] 累计完成 {$totalDone} 条，1秒后自动继续...", 'warn');
                         outputDivider('-');
-                        $only = $onlyEmpty ? '&onlyempty=1' : '';
-                        echo "</pre><script>setTimeout(function(){ window.location.href='?mode=detail&resume=1{$only}'; }, 1000);</script></body></html>";
+                        // onlyEmpty 时不带 all; 全部覆盖模式带 all=1 以保持模式
+                        $modeParam = $onlyEmpty ? '' : '&all=1';
+                        echo "</pre><script>setTimeout(function(){ window.location.href='?resume=1{$modeParam}'; }, 1000);</script></body></html>";
                         exit;
                     }
                 }
@@ -861,23 +862,29 @@ outputLine("程序启动...", 'info');
 outputLine("");
 
 if ($isCli) {
-    // 详情模式:  php cj.php detail [onlyempty] [resume]
-    // 列表模式:  php cj.php [起始页] [结束页] [resume]
-    $mode = (isset($argv[1]) && $argv[1] === 'detail') ? 'detail' : 'list';
+    // 默认: 详情更新模式(读全表, 仅更新 imgurl/videourl 为空的记录)
+    //   php cj.php               → 详情更新, 仅空字段
+    //   php cj.php all           → 详情更新, 全部覆盖
+    //   php cj.php list [起始页] [结束页] [resume] → 列表采集(插入)
+    $mode = (isset($argv[1]) && $argv[1] === 'list') ? 'list' : 'detail';
     if ($mode === 'detail') {
-        $onlyEmpty = in_array('onlyempty', $argv, true);
+        // 默认只补空字段; 传 all 则全部覆盖
+        $onlyEmpty = !(isset($argv[1]) && $argv[1] === 'all');
         $resume = in_array('resume', $argv, true);
     } else {
-        $startPage = isset($argv[1]) ? intval($argv[1]) : 1;
-        $endPage = isset($argv[2]) ? intval($argv[2]) : -1;
-        $resume = isset($argv[3]) && $argv[3] === 'resume';
+        $startPage = isset($argv[2]) ? intval($argv[2]) : 1;
+        $endPage = isset($argv[3]) ? intval($argv[3]) : -1;
+        $resume = isset($argv[4]) && $argv[4] === 'resume';
     }
 } else {
-    // 详情模式:  ?mode=detail[&onlyempty=1][&resume=1]
-    // 列表模式:  ?start=1&end=-1[&resume=1]
-    $mode = (isset($_GET['mode']) && $_GET['mode'] === 'detail') ? 'detail' : 'list';
+    // 默认: 详情更新模式(读全表, 仅更新 imgurl/videourl 为空的记录)
+    //   cj.php                    → 详情更新, 仅空字段
+    //   cj.php?all=1              → 详情更新, 全部覆盖
+    //   cj.php?mode=list&start=1  → 列表采集(插入)
+    $mode = (isset($_GET['mode']) && $_GET['mode'] === 'list') ? 'list' : 'detail';
     if ($mode === 'detail') {
-        $onlyEmpty = isset($_GET['onlyempty']);
+        // 默认只补空字段; 传 all=1 则全部覆盖
+        $onlyEmpty = !isset($_GET['all']);
         $resume = isset($_GET['resume']);
     } else {
         $startPage = isset($_GET['start']) ? intval($_GET['start']) : 1;
