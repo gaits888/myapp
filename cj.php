@@ -442,7 +442,7 @@ class VideoCollector {
         $maxVodId = $this->getMaxVodId();
         
         outputLine("[数据库] 已有记录: {$dbCount} 条", 'info');
-        outputLine("[数据��] 最大vod_id: {$maxVodId}", 'info');
+        outputLine("[数据库] 最大vod_id: {$maxVodId}", 'info');
         outputLine("");
         
         // 检查今日是否已采集
